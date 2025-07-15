@@ -267,9 +267,21 @@ Lemma tsize_gt0 pt : 0 < tsize pt. Proof. by case: pt. Qed.
 Definition base pt := if pt is PTExp pt _   then pt  else pt.
 Definition exps pt := if pt is PTExp pt pts then pts else [::].
 
+Definition inv pt :=
+  match pt with
+  | PT1 O1Inv t => t
+  | _ => PT1 O1Inv pt
+  end.
+
+Definition insert_exp pt pts :=
+  if inv pt \in pts then rem (inv pt) pts else pt :: pts.
+
+Definition normalize_exps := foldr insert_exp [::].
+
 Definition exp pt pts :=
-  if size pts == 0 then pt
-  else PTExp (base pt) (sort <=%O (exps pt ++ pts)).
+  let normed := sort <=%O (normalize_exps (exps pt ++ pts)) in
+  if size normed == 0 then base pt
+  else PTExp (base pt) normed.
 
 Lemma tsize_exp t ts :
   tsize (exp t ts) =
