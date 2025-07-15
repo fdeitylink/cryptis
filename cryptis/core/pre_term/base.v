@@ -40,10 +40,12 @@ HB.instance Definition _ := key_type_isOrder.
 
 Inductive term_op1 :=
 | O1Key of key_type
-| O1Hash.
+| O1Hash
+| O1Inv.
 
 Notation TKey_tag := 0%Z.
 Notation THash_tag := 1%Z.
+Notation TInv_tag := 2%Z.
 
 Canonical term_op1_indDef := [indDef for term_op1_rect].
 Canonical term_op1_indType := IndType term_op1 term_op1_indDef.
@@ -194,11 +196,13 @@ Lemma op1_leqE (o1 o2 : term_op1) :
   match o1, o2 with
   | O1Key k1, O1Key k2 => (k1 <= k2)%O
   | O1Hash, O1Hash => true
+  | O1Inv, O1Inv => true
   | O1Key _, _ => true
+  | O1Hash, O1Inv => true
   | _, _ => false
   end.
 Proof.
-case: o1 o2 => [k1|] [k2|] //=.
+case: o1 o2 => [k1| |] [k2| |] //=.
 by rewrite [RHS]le_alt.
 Qed.
 
