@@ -27,6 +27,7 @@ Notation TKey_tag := 3%Z.
 Notation TSeal_tag := 4%Z.
 Notation THash_tag := 5%Z.
 Notation TExp_tag := 6%Z.
+Notation TInv_tag := 7%Z.
 
 Module PreTerm.
 
@@ -38,7 +39,8 @@ Inductive pre_term :=
 | PTKey of key_type & pre_term
 | PTSeal of pre_term & pre_term
 | PTHash of pre_term
-| PTExp of pre_term & list pre_term.
+| PTExp of pre_term & list pre_term
+| PTInv of pre_term.
 Set Elimination Schemes.
 
 Definition pre_term_rect'
@@ -51,8 +53,9 @@ Definition pre_term_rect'
   (H5 : forall t1, T1 t1 -> forall t2, T1 t2 -> T1 (PTSeal t1 t2))
   (H6 : forall t, T1 t -> T1 (PTHash t))
   (H7 : forall t, T1 t -> forall ts, T2 ts -> T1 (PTExp t ts))
-  (H8 : T2 [::])
-  (H9 : forall t, T1 t -> forall ts, T2 ts -> T2 (t :: ts)) :=
+  (H8 : forall t, T1 t -> T1 (PTInv t))
+  (H9 : T2 [::])
+  (H10 : forall t, T1 t -> forall ts, T2 ts -> T2 (t :: ts)) :=
   fix loop1 t {struct t} : T1 t :=
     match t with
     | PTInt n => H1 n
@@ -64,10 +67,11 @@ Definition pre_term_rect'
     | PTExp t ts =>
       let fix loop2 ts {struct ts} : T2 ts :=
           match ts with
-          | [::] => H8
-          | t :: ts => H9 t (loop1 t) ts (loop2 ts)
+          | [::] => H9
+          | t :: ts => H10 t (loop1 t) ts (loop2 ts)
           end in
       H7 t (loop1 t) ts (loop2 ts)
+    | PTInv t => H8 t (loop1 t)
     end.
 
 Definition list_pre_term_rect'
@@ -80,13 +84,14 @@ Definition list_pre_term_rect'
   (H5 : forall t1, T1 t1 -> forall t2, T1 t2 -> T1 (PTSeal t1 t2))
   (H6 : forall t, T1 t -> T1 (PTHash t))
   (H7 : forall t, T1 t -> forall ts, T2 ts -> T1 (PTExp t ts))
-  (H8 : T2 [::])
-  (H9 : forall t, T1 t -> forall ts, T2 ts -> T2 (t :: ts)) :=
+  (H8 : forall t, T1 t -> T1 (PTInv t))
+  (H9 : T2 [::])
+  (H10 : forall t, T1 t -> forall ts, T2 ts -> T2 (t :: ts)) :=
   fix loop2 ts {struct ts} : T2 ts :=
     match ts with
-    | [::] => H8
+    | [::] => H9
     | t :: ts =>
-      H9 t (pre_term_rect' T1 T2 H1 H2 H3 H4 H5 H6 H7 H8 H9 t) ts (loop2 ts)
+      H10 t (pre_term_rect' T1 T2 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 t) ts (loop2 ts)
     end.
 
 Combined Scheme pre_term_list_pre_term_rect
@@ -113,7 +118,8 @@ Definition pre_term_rect (T : pre_term -> Type)
   (H6 : forall t, T t -> T (PTHash t))
   (H7 : forall t, T t ->
         forall ts, foldr (fun t R => T t * R)%type unit ts ->
-          T (PTExp t ts)) t : T t.
+          T (PTExp t ts)) t
+  (H8 : forall t, T t -> T (PTInv t)) : T t.
 Proof.
 exact: (@pre_term_rect' T (foldr (fun t R => T t * R)%type unit)).
 Defined.
@@ -134,6 +140,7 @@ Definition cons_num pt : Z :=
   | PTSeal _ _ => TSeal_tag
   | PTHash _ => THash_tag
   | PTExp _ _ => TExp_tag
+  | PTInv _ => TInv_tag
   end.
 
 Open Scope order_scope.
@@ -157,6 +164,7 @@ Lemma leqE pt1 pt2 :
     | PTExp pt1 pts1, PTExp pt2 pts2 =>
       if pt1 == pt2 then ((pts1 : seqlexi_with Order.default_display _) <= pts2)%O
       else (pt1 <= pt2)%O
+    | PTInv pt1, PTInv pt2 => (pt1 <= pt2)%O
     | _, _ => false
     end
   else (cons_num pt1 <=? cons_num pt2)%Z.
