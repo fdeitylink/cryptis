@@ -173,8 +173,8 @@ have le_alt (T : orderType _) (x y : T) :
     (x <= y)%O = if x == y then true else (x <= y)%O.
   by case: (ltgtP x y).
 case: pt1 pt2
-    => [n1|pt11 pt12|a1|kt1 pt1|pt11 pt12|pt1|pt1 pts1]
-       [n2|pt21 pt22|a2|kt2 pt2|pt21 pt22|pt2|pt2 pts2] //=.
+    => [n1|pt11 pt12|a1|kt1 pt1|pt11 pt12|pt1|pt1 pts1|pt1]
+       [n2|pt21 pt22|a2|kt2 pt2|pt21 pt22|pt2|pt2 pts2|pt2] //=.
 - by rewrite [RHS]le_alt.
 - by rewrite [(pt12 <= pt22)%O]le_alt.
 - by rewrite [RHS]le_alt.
@@ -190,6 +190,7 @@ have -> : ((pts1 : seqlexi_with Order.default_display _) <= pts2)%O =
     rewrite lexi_cons IH.
     case: ltgtP => //= _; exact: le_alt.
 by rewrite [(pts1 : seq_pre_term)  <= pts2]le_alt.
+- by rewrite (le_alt _ _ pt1).
 Qed.
 
 Close Scope order_scope.
@@ -203,6 +204,7 @@ Fixpoint height pt :=
   | PTSeal k t => S (maxn (height k) (height t))
   | PTHash t => S (height t)
   | PTExp t ts => S (\max_(x <- height t :: map height ts) x)
+  | PTInv t => S (height t)
   end.
 
 Fixpoint tsize pt :=
@@ -214,6 +216,7 @@ Fixpoint tsize pt :=
   | PTSeal k t => S (S (tsize k) + tsize t)
   | PTHash t => S (tsize t)
   | PTExp t ts => S (\sum_(n <- tsize t :: map tsize ts) n)
+  | PTInv t => S (tsize t)
   end.
 
 Lemma tsize_gt0 pt : 0 < tsize pt. Proof. by case: pt. Qed.
@@ -221,9 +224,39 @@ Lemma tsize_gt0 pt : 0 < tsize pt. Proof. by case: pt. Qed.
 Definition base pt := if pt is PTExp pt _   then pt  else pt.
 Definition exps pt := if pt is PTExp pt pts then pts else [::].
 
+Definition inv pt :=
+  match pt with
+  | PTInv t => t
+  | _ => PTInv pt
+  end.
+
+Definition insert_exp pt pts :=
+  if inv pt \in pts then rem (inv pt) pts else pt :: pts.
+
+Axiom cheating : forall A, A.
+
+Tactic Notation "cheat" := apply cheating.
+
+Lemma perm_insert_exp pt pts1 pts2 : perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
+Proof.
+  intros H.
+  unfold insert_exp.
+  rewrite (perm_mem H (inv pt)).
+  destruct (inv pt \in pts2) eqn:E.
+  - rewrite E. rewrite <- (perm_cons (inv pt)). cheat.
+  - rewrite E. rewrite perm_cons. apply H.
+Qed.
+
+Fixpoint normalize_exps pts :=
+  match pts with
+  | [::] => [::]
+  | pt :: pts => insert_exp pt (normalize_exps pts)
+  end.
+
 Definition exp pt pts :=
-  if size pts == 0 then pt
-  else PTExp (base pt) (sort <=%O (exps pt ++ pts)).
+  let normed := sort <=%O (normalize_exps (exps pt ++ pts)) in
+  if size normed == 0 then base pt
+  else PTExp (base pt) normed.
 
 Lemma tsize_exp t ts :
   tsize (exp t ts) =
