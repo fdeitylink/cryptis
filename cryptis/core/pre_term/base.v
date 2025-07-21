@@ -233,17 +233,30 @@ Definition inv pt :=
 Definition insert_exp pt pts :=
   if inv pt \in pts then rem (inv pt) pts else pt :: pts.
 
-Axiom cheating : forall A, A.
+Section Rem.
 
-Tactic Notation "cheat" := apply cheating.
+Variables (T : eqType) (x : T).
+
+Lemma perm_rem s1 s2 : perm_eq s1 s2 -> perm_eq (rem x s1) (rem x s2).
+Proof.
+  intros H.
+  destruct (x \in s1) eqn:E1.
+  - destruct (x \in s2) eqn:E2.
+    + admit.
+    + rewrite (perm_mem H x) in E1. rewrite E1 in E2. discriminate.
+  - destruct (x \in s2) eqn:E2.
+    + rewrite (perm_mem H x) in E1. rewrite E1 in E2. discriminate.
+    + admit.
+Admitted.
+
+End Rem.
 
 Lemma perm_insert_exp pt pts1 pts2 : perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
 Proof.
-  intros H.
-  unfold insert_exp.
+  intros H. unfold insert_exp.
   rewrite (perm_mem H (inv pt)).
   destruct (inv pt \in pts2) eqn:E.
-  - rewrite E. rewrite <- (perm_cons (inv pt)). cheat.
+  - rewrite E. apply perm_rem. apply H.
   - rewrite E. rewrite perm_cons. apply H.
 Qed.
 
@@ -253,11 +266,20 @@ Fixpoint normalize_exps pts :=
   | pt :: pts => insert_exp pt (normalize_exps pts)
   end.
 
+Lemma perm_normalize_exps pts1 pts2 : perm_eq pts1 pts2 -> perm_eq (normalize_exps pts1) (normalize_exps pts2).
+Proof.
+  generalize dependent pts2. induction pts1 as [| pt1' pts1' IH].
+  - intros pts2 H. rewrite perm_sym in H. rewrite <- (perm_nilP H). apply perm_refl.
+  - intros pts2 H. rewrite perm_sym in H. destruct (perm_consP H) as [i [u [H1 H2]]].
+    simpl.
+Admitted.
+
 Definition exp pt pts :=
   let normed := sort <=%O (normalize_exps (exps pt ++ pts)) in
   if size normed == 0 then base pt
   else PTExp (base pt) normed.
 
+(*
 Lemma tsize_exp t ts :
   tsize (exp t ts) =
   if ts == [::] then tsize t
@@ -267,6 +289,7 @@ rewrite /exp [LHS]fun_if /= size_eq0.
 have: perm_eq (sort <=%O (exps t ++ ts)) (exps t ++ ts) by rewrite perm_sort.
 by move=> e; rewrite !big_cons !big_map (perm_big _ e).
 Qed.
+*)
 
 Definition is_nonce pt :=
   if pt is PTNonce _ then true else false.
@@ -283,8 +306,10 @@ Proof. by case: pt. Qed.
 Lemma base_expsK pt : is_exp pt -> PTExp (base pt) (exps pt) = pt.
 Proof. by case: pt. Qed.
 
+(*
 Lemma is_exp_exp pt pts : is_exp (exp pt pts) = (pts != [::]) || is_exp pt.
 Proof. by rewrite /exp size_eq0; case: eqP. Qed.
+*)
 
 Lemma perm_exp pt pts1 pts2 : perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
 Proof.
@@ -302,6 +327,7 @@ Fixpoint normalize pt :=
   | PTSeal k t => PTSeal (normalize k) (normalize t)
   | PTHash t => PTHash (normalize t)
   | PTExp t ts => exp (normalize t) (map normalize ts)
+  | PTInv t => inv (normalize t)
   end.
 
 Fixpoint wf_term pt :=
