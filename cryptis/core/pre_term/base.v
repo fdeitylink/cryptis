@@ -1,4 +1,5 @@
 From cryptis Require Export mathcomp_compat.
+From cryptis.lib Require Import mathcomp_utils.
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect.
 From deriving Require Import deriving.
@@ -233,31 +234,13 @@ Definition inv pt :=
 Definition insert_exp pt pts :=
   if inv pt \in pts then rem (inv pt) pts else pt :: pts.
 
-Section Rem.
-
-Variables (T : eqType) (x : T).
-
-Lemma perm_rem s1 s2 : perm_eq s1 s2 -> perm_eq (rem x s1) (rem x s2).
-Proof.
-  intros H.
-  destruct (x \in s1) eqn:E1.
-  - destruct (x \in s2) eqn:E2.
-    + admit.
-    + rewrite (perm_mem H x) in E1. rewrite E1 in E2. discriminate.
-  - destruct (x \in s2) eqn:E2.
-    + rewrite (perm_mem H x) in E1. rewrite E1 in E2. discriminate.
-    + admit.
-Admitted.
-
-End Rem.
-
 Lemma perm_insert_exp pt pts1 pts2 : perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
 Proof.
   intros H. unfold insert_exp.
   rewrite (perm_mem H (inv pt)).
-  destruct (inv pt \in pts2) eqn:E.
-  - rewrite E. apply perm_rem. apply H.
-  - rewrite E. rewrite perm_cons. apply H.
+  case: (inv pt \in pts2) => //=.
+  - apply perm_rem. apply H.
+  - rewrite perm_cons. apply H.
 Qed.
 
 Fixpoint normalize_exps pts :=
@@ -266,8 +249,49 @@ Fixpoint normalize_exps pts :=
   | pt :: pts => insert_exp pt (normalize_exps pts)
   end.
 
+Unset Printing Implicit Defensive.
+
+(* MOVE *)
+Lemma rem_rem (T : eqType) (x y : T) (s : seq T) : rem x (rem y s) = rem y (rem x s).
+Proof.
+elim: s => [|z s IH] //=.
+have [->|zy //=] := altP (z =P y).
+- have [-> //|yx] := altP (y =P x); by rewrite /= eqxx.
+- have [//= ->|zx /=] := altP (z =P x).
+  by rewrite (negbTE zy) IH.
+Qed.
+
+Lemma normalize_exps_rcons pts pt :
+  perm_eql (normalize_exps (rcons pts pt)) (insert_exp pt (normalize_exps pts)).
+Proof.
+apply/permPl.
+elim: pts=> [|pt' pts /(perm_insert_exp pt') IH] //=.
+rewrite (permPl IH) {IH}.
+move: (normalize_exps _) => {}pts.
+rewrite /insert_exp /=.
+have [pt_pts|pt_pts] := boolP (inv pt \in pts).
+- have [pt'_pts|pt'_pts] := boolP (inv pt' \in pts).
+  + admit.
+  + admit.
+- admit.
+Admitted.
+
+Lemma normalize_exps_cat pts1 pts2 :
+  perm_eql (normalize_exps (pts1 ++ pts2)) (normalize_exps (pts2 ++ pts1)).
+Proof.
+elim: pts2 => [|pt pts2 IH] //= in pts1 *; first by rewrite cats0.
+apply/permPl. by rewrite -cat1s catA IH catA cats1 normalize_exps_rcons.
+Qed.
+
 Lemma perm_normalize_exps pts1 pts2 : perm_eq pts1 pts2 -> perm_eq (normalize_exps pts1) (normalize_exps pts2).
 Proof.
+elim: pts2 => [|pt2' pts2' IH] //= in pts1 *
+           => [/perm_nilP ->|/perm_consP [i [pts1' [e p]]]] //.
+move/IH/(perm_insert_exp pt2') in p.
+rewrite (perm_trans _ p) //.
+
+
+- case/perm_consP.
   generalize dependent pts2. induction pts1 as [| pt1' pts1' IH].
   - intros pts2 H. rewrite perm_sym in H. rewrite <- (perm_nilP H). apply perm_refl.
   - intros pts2 H. rewrite perm_sym in H. destruct (perm_consP H) as [i [u [H1 H2]]].
