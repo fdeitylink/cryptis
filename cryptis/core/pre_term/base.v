@@ -1,4 +1,5 @@
 From cryptis Require Export mathcomp_compat.
+From cryptis Require Import mathcomp_utils.
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect.
 From deriving Require Import deriving.
@@ -275,6 +276,16 @@ Definition inv pt :=
 
 Definition insert_exp pt pts :=
   if inv pt \in pts then rem (inv pt) pts else pt :: pts.
+
+Lemma perm_insert_exp pt pts1 pts2 :
+  perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
+Proof.
+  intros H. unfold insert_exp.
+  rewrite (perm_mem H (inv pt)).
+  case: (inv pt \in pts2) => //=.
+  - apply / perm_rem / H.
+  - by rewrite perm_cons / H.
+Qed.
 
 Definition normalize_exps := foldr insert_exp [::].
 
