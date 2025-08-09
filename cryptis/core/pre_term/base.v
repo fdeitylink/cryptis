@@ -268,32 +268,138 @@ Lemma tsize_gt0 pt : 0 < tsize pt. Proof. by case: pt. Qed.
 Definition base pt := if pt is PTExp pt _   then pt  else pt.
 Definition exps pt := if pt is PTExp pt pts then pts else [::].
 
+Definition is_inv pt :=
+  if pt is PT1 O1Inv _ then true else false.
+
 Definition inv pt :=
   match pt with
   | PT1 O1Inv t => t
   | _ => PT1 O1Inv pt
   end.
 
+Fixpoint normalize_inv pt :=
+  match pt with
+  | PT0 o => PT0 o
+  | PT1 O1Inv pt => inv (normalize_inv pt)
+  | PT1 o t => PT1 o (normalize_inv t)
+  | PT2 o t1 t2 => PT2 o (normalize_inv t1) (normalize_inv t2)
+  | PTExp t ts => PTExp (normalize_inv t) (map normalize_inv ts)
+  end.
+
+Fixpoint wf_inv pt :=
+  match pt with
+  | PT0 _ => true
+  | PT1 O1Inv pt => ~~ is_inv pt && wf_inv pt
+  | PT1 _ pt => wf_inv pt
+  | PT2 _ t1 t2 => wf_inv t1 && wf_inv t2
+  | PTExp pt pts => wf_inv pt && all wf_inv pts
+  end.
+
+Lemma wf_normalize_inv pt : wf_inv (normalize_inv pt).
+Proof.
+  induction pt as [o | o t IHt | o t1 IHt1 t2 IHt2 | t IHt ts IHts].
+  - reflexivity.
+  - destruct o.
+    + apply IHt.
+    + apply IHt.
+    + simpl. admit.
+  - simpl. rewrite IHt1. apply IHt2.
+  - simpl. rewrite IHt.
+Admitted.
+
+Lemma normalize_inv_wf pt : wf_inv pt -> normalize_inv pt = pt.
+Proof.
+  intros wf. induction pt as [o | o t IHt | o t1 IHt1 t2 IHt2 | t IHt ts IHts].
+  - reflexivity.
+  - destruct o.
+    + simpl. rewrite (IHt wf). reflexivity.
+    + simpl. rewrite (IHt wf). reflexivity.
+    + simpl. simpl in wf. admit.
+  - admit.
+  - admit.
+Admitted.
+
+Lemma inv_involutive pt : wf_inv pt -> inv (inv pt) = pt.
+Proof.
+  intros wf_pt. destruct pt as [| o t | |].
+  - reflexivity.
+  - destruct o.
+    + reflexivity.
+    + reflexivity.
+    + destruct t as [| [] | |].
+      * reflexivity.
+      * reflexivity.
+      * reflexivity.
+      * discriminate.
+      * reflexivity.
+      * reflexivity.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
 Definition insert_exp pt pts :=
-  if inv pt \in pts then rem (inv pt) pts else pt :: pts.
+  let pt := normalize_inv pt in
+  if inv pt \in pts then rem (inv pt) pts
+  else pt :: pts.
 
 Lemma perm_insert_exp pt pts1 pts2 :
   perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
 Proof.
   intros H. unfold insert_exp.
-  rewrite (perm_mem H (inv pt)).
-  case: (inv pt \in pts2) => //=.
+  rewrite (perm_mem H (inv (normalize_inv pt))).
+  case: (inv (normalize_inv pt) \in pts2) => //=.
   - apply / perm_rem / H.
   - by rewrite perm_cons / H.
 Qed.
 
+Lemma perm_insert_exp_swap pt1 pt2 pts :
+  wf_inv pt1 -> wf_inv pt2 ->
+  perm_eq (insert_exp pt1 (insert_exp pt2 pts)) (insert_exp pt2 (insert_exp pt1 pts)).
+Proof.
+  intros wf1 wf2. induction pts as [| pt' pts' IH].
+  - unfold insert_exp. rewrite !in_cons !in_nil.
+  -
+Admitted.
+
 Definition normalize_exps := foldr insert_exp [::].
+
+Lemma perm_normalize_exps_rcons pt pts :
+  perm_eq (normalize_exps (pt :: pts)) (normalize_exps (rcons pts pt)).
+Proof.
+  induction pts as [| pt' pts' IH].
+  - apply perm_refl.
+  - apply perm_trans with (insert_exp pt' (insert_exp pt (normalize_exps pts'))).
+    + apply perm_insert_exp_swap.
+    + apply / perm_insert_exp / IH.
+Qed.
+
+Lemma perm_normalize_exps_catC pts1 pts2 :
+  perm_eq (normalize_exps (pts1 ++ pts2)) (normalize_exps (pts2 ++ pts1)).
+Proof.
+  generalize dependent pts2. induction pts1 as [| pt1 pts1' IH].
+  - intros pts2. rewrite cats0. apply perm_refl.
+  - intros pts2.
+Admitted.
+
+Lemma perm_normalize_exps pts1 pts2 :
+  perm_eq pts1 pts2 -> perm_eq (normalize_exps pts1) (normalize_exps pts2).
+Proof.
+  generalize dependent pts2. induction pts1 as [| pt pts1' IH].
+  - intros pts2 H. rewrite perm_sym in H. rewrite (perm_nilP H). apply perm_refl.
+  - intros pts2 H. rewrite perm_sym in H. destruct (perm_consP H) as [i [u [H1 H2]]].
+    apply perm_trans with (normalize_exps (rot i pts2)).
+    + rewrite H1. simpl. apply / perm_insert_exp / IH. rewrite perm_sym. apply H2.
+    + apply perm_trans with (normalize_exps (take i pts2 ++ drop i pts2)).
+      * apply perm_normalize_exps_catC.
+      * rewrite cat_take_drop. apply perm_refl.
+Qed.
 
 Definition exp pt pts :=
   let normed := sort <=%O (normalize_exps (exps pt ++ pts)) in
   if size normed == 0 then base pt
   else PTExp (base pt) normed.
 
+(*
 Lemma tsize_exp t ts :
   tsize (exp t ts) =
   if ts == [::] then tsize t
@@ -303,6 +409,7 @@ rewrite /exp [LHS]fun_if /= size_eq0.
 have: perm_eq (sort <=%O (exps t ++ ts)) (exps t ++ ts) by rewrite perm_sort.
 by move=> e; rewrite !big_cons !big_map (perm_big _ e).
 Qed.
+*)
 
 Definition is_nonce pt :=
   if pt is PT0 (O0Nonce _) then true else false.
@@ -319,15 +426,19 @@ Proof. by case: pt. Qed.
 Lemma base_expsK pt : is_exp pt -> PTExp (base pt) (exps pt) = pt.
 Proof. by case: pt. Qed.
 
+(**
 Lemma is_exp_exp pt pts : is_exp (exp pt pts) = (pts != [::]) || is_exp pt.
 Proof. by rewrite /exp size_eq0; case: eqP. Qed.
+*)
 
+(*
 Lemma perm_exp pt pts1 pts2 : perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
 Proof.
 move=> pts12; rewrite /exp (perm_size pts12); case: (_ == _) => //.
 have /perm_sort_leP -> // : perm_eq (exps pt ++ pts1) (exps pt ++ pts2).
 by rewrite perm_cat2l.
 Qed.
+*)
 
 Fixpoint normalize pt :=
   match pt with
@@ -340,6 +451,7 @@ Fixpoint normalize pt :=
 Fixpoint wf_term pt :=
   match pt with
   | PT0 _ => true
+  | PT1 O1Inv (PT1 O1Inv _) => false
   | PT1 _ pt => wf_term pt
   | PT2 _ pt1 pt2 => wf_term pt1 && wf_term pt2
   | PTExp pt pts => [&& wf_term pt, ~~ is_exp pt,
