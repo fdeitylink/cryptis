@@ -6,6 +6,10 @@ From deriving Require Import deriving.
 From Stdlib Require Import ZArith.ZArith Lia.
 From iris.heap_lang Require locations.
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
 Import Order.POrderTheory Order.TotalTheory.
 
 Inductive term_op0 :=
@@ -295,17 +299,21 @@ Fixpoint wf_inv pt :=
   | PTExp pt pts => wf_inv pt && all wf_inv pts
   end.
 
+Lemma wf_inv_inv pt : wf_inv pt -> wf_inv (inv pt).
+Proof. by case: pt => // - [] ? //= /andP [??]. Qed.
+
 Lemma wf_normalize_inv pt : wf_inv (normalize_inv pt).
 Proof.
   induction pt as [o | o t IHt | o t1 IHt1 t2 IHt2 | t IHt ts IHts].
   - reflexivity.
-  - destruct o.
+  - simpl. destruct o.
     + apply IHt.
     + apply IHt.
-    + simpl. admit.
+    + by apply wf_inv_inv.
   - simpl. rewrite IHt1. apply IHt2.
   - simpl. rewrite IHt.
-Admitted.
+    by elim: ts IHts => //= t' ts IH [-> /IH ->].
+Qed.
 
 Lemma normalize_inv_wf pt : wf_inv pt -> normalize_inv pt = pt.
 Proof.
@@ -338,7 +346,6 @@ Proof.
 Qed.
 
 Definition insert_exp pt pts :=
-  let pt := normalize_inv pt in
   if inv pt \in pts then rem (inv pt) pts
   else pt :: pts.
 
@@ -346,19 +353,27 @@ Lemma perm_insert_exp pt pts1 pts2 :
   perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
 Proof.
   intros H. unfold insert_exp.
-  rewrite (perm_mem H (inv (normalize_inv pt))).
-  case: (inv (normalize_inv pt) \in pts2) => //=.
+  rewrite (perm_mem H (inv pt)).
+  case: (inv pt \in pts2) => //=.
   - apply / perm_rem / H.
   - by rewrite perm_cons / H.
 Qed.
 
+Unset Printing Implicit Defensive.
+
 Lemma perm_insert_exp_swap pt1 pt2 pts :
-  wf_inv pt1 -> wf_inv pt2 ->
+  wf_inv pt1 -> wf_inv pt2 -> all wf_inv pts ->
   perm_eq (insert_exp pt1 (insert_exp pt2 pts)) (insert_exp pt2 (insert_exp pt1 pts)).
 Proof.
-  intros wf1 wf2. induction pts as [| pt' pts' IH].
-  - unfold insert_exp. rewrite !in_cons !in_nil.
-  -
+rewrite /insert_exp => wf1 wf2 wf.
+have [<- //|n12] := altP (pt1 =P pt2).
+have n12' : inv pt1 != inv pt2.
+  rewrite -[pt1]inv_involutive // -[pt2]inv_involutive // in n12.
+  by apply: contraNN n12 => /eqP ->.
+have [pt1_pts|pt1_pts] := ifP (inv pt1 \in pts);
+have [pt2_pts|pt2_pts] := ifP (inv pt2 \in pts).
+- by rewrite rem_rem rem_mem // rem_mem // eq_sym.
+- rewrite inE pt1_pts orbT /=.
 Admitted.
 
 Definition normalize_exps := foldr insert_exp [::].
@@ -432,7 +447,7 @@ Proof. by rewrite /exp size_eq0; case: eqP. Qed.
 *)
 
 (*
-Lemma perm_exp pt pts1 pts2 : perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
+Lemma perm_exp pt pts1 pts2 : all wf_term pts1 -> perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
 Proof.
 move=> pts12; rewrite /exp (perm_size pts12); case: (_ == _) => //.
 have /perm_sort_leP -> // : perm_eq (exps pt ++ pts1) (exps pt ++ pts2).
