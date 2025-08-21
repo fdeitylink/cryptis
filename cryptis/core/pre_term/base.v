@@ -132,7 +132,7 @@ Definition list_pre_term_rect'
     match ts with
     | [::] => H5
     | t :: ts =>
-      H6 t (pre_term_rect' T1 T2 H1 H2 H3 H4 H5 H6 t) ts (loop2 ts)
+      H6 t (@pre_term_rect' T1 T2 H1 H2 H3 H4 H5 H6 t) ts (loop2 ts)
     end.
 
 Combined Scheme pre_term_list_pre_term_rect
@@ -345,6 +345,13 @@ Proof.
   - reflexivity.
 Qed.
 
+Lemma inv_eq_op pt1 pt2 :
+  wf_inv pt1 -> wf_inv pt2 -> (inv pt1 == pt2) = (pt1 == inv pt2).
+Proof.
+move=> wf1 wf2.
+by apply/(sameP eqP)/(iffP eqP) => [->|<-]; rewrite inv_involutive.
+Qed.
+
 Definition insert_exp pt pts :=
   if inv pt \in pts then rem (inv pt) pts
   else pt :: pts.
@@ -359,43 +366,69 @@ Proof.
   - by rewrite perm_cons / H.
 Qed.
 
-Unset Printing Implicit Defensive.
-
 Lemma perm_insert_exp_swap pt1 pt2 pts :
-  wf_inv pt1 -> wf_inv pt2 -> all wf_inv pts ->
+  wf_inv pt1 -> wf_inv pt2 ->
   perm_eq (insert_exp pt1 (insert_exp pt2 pts)) (insert_exp pt2 (insert_exp pt1 pts)).
 Proof.
-rewrite /insert_exp => wf1 wf2 wf.
+rewrite /insert_exp => wf1 wf2.
 have [<- //|n12] := altP (pt1 =P pt2).
 have n12' : inv pt1 != inv pt2.
   rewrite -[pt1]inv_involutive // -[pt2]inv_involutive // in n12.
   by apply: contraNN n12 => /eqP ->.
-have [pt1_pts|pt1_pts] := ifP (inv pt1 \in pts);
-have [pt2_pts|pt2_pts] := ifP (inv pt2 \in pts).
+have [pt1_pts|pt1_pts] := ifPn (inv pt1 \in pts);
+have [pt2_pts|pt2_pts] := ifPn (inv pt2 \in pts).
 - by rewrite rem_rem rem_mem // rem_mem // eq_sym.
 - rewrite inE pt1_pts orbT /=.
-Admitted.
+  have /negbTE -> : inv pt2 \notin rem (inv pt1) pts.
+    apply: contraNN pt2_pts. exact: mem_rem.
+  case: ifP => // /eqP <- in pt1_pts *.
+  exact: perm_to_rem.
+- rewrite inE pt2_pts orbT /=.
+  have /negbTE -> : inv pt1 \notin rem (inv pt2) pts.
+    apply: contraNN pt1_pts. exact: mem_rem.
+  case: ifP => // /eqP <- in pt2_pts *.
+  rewrite perm_sym. exact: perm_to_rem.
+- rewrite !inE (negbTE pt1_pts) (negbTE pt2_pts) !orbF /=.
+  rewrite [pt2 == _]eq_sym inv_eq_op // [inv pt2 == _]eq_sym.
+  case: ifPn => [/eqP ->|_]; first by rewrite eqxx.
+  apply/perm_consP. exists 1, (rcons pts pt1).
+  rewrite perm_rcons; split => //=; by rewrite -cats1.
+Qed.
 
 Definition normalize_exps := foldr insert_exp [::].
 
 Lemma perm_normalize_exps_rcons pt pts :
+  wf_inv pt -> all wf_inv pts ->
   perm_eq (normalize_exps (pt :: pts)) (normalize_exps (rcons pts pt)).
 Proof.
-  induction pts as [| pt' pts' IH].
-  - apply perm_refl.
-  - apply perm_trans with (insert_exp pt' (insert_exp pt (normalize_exps pts'))).
-    + apply perm_insert_exp_swap.
-    + apply / perm_insert_exp / IH.
+move=> wf_pt; elim: pts => [|pt' pts' IH] /= => [_|/andP [wf_pt' /IH {}IH]].
+- apply perm_refl.
+- apply perm_trans with (insert_exp pt' (insert_exp pt (normalize_exps pts'))).
+  + apply perm_insert_exp_swap => //.
+  + apply / perm_insert_exp / IH.
 Qed.
 
 Lemma perm_normalize_exps_catC pts1 pts2 :
+  all wf_inv pts1 -> all wf_inv pts2 ->
   perm_eq (normalize_exps (pts1 ++ pts2)) (normalize_exps (pts2 ++ pts1)).
 Proof.
-  generalize dependent pts2. induction pts1 as [| pt1 pts1' IH].
-  - intros pts2. rewrite cats0. apply perm_refl.
-  - intros pts2.
-Admitted.
+move=> wf1 wf2.
+elim: pts1 => [|pt1 pts1' IH] /= in pts2 wf1 wf2 *.
+  by rewrite cats0 perm_refl.
+case/andP: wf1 => [wf wf1].
+have e1 : perm_eq (normalize_exps (pt1 :: (pts1' ++ pts2)))
+                  (normalize_exps (rcons (pts1' ++ pts2) pt1)).
+  apply: perm_normalize_exps_rcons => //.
+  by rewrite all_cat wf1.
+rewrite (perm_trans e1) //.
+rewrite -cats1 -catA.
+have e2 : perm_eq (normalize_exps (pts1' ++ pts2 ++ [:: pt1]))
+                  (normalize_exps ((pts2 ++ [:: pt1]) ++ pts1')).
+  by apply: IH; rewrite // all_cat wf2 /= wf.
+by rewrite (perm_trans e2) // -catA.
+Qed.
 
+(* Stopped here *)
 Lemma perm_normalize_exps pts1 pts2 :
   perm_eq pts1 pts2 -> perm_eq (normalize_exps pts1) (normalize_exps pts2).
 Proof.
