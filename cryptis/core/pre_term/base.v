@@ -304,15 +304,10 @@ Proof. by case: pt => // - [] ? //= /andP [??]. Qed.
 
 Lemma wf_normalize_inv pt : wf_inv (normalize_inv pt).
 Proof.
-  induction pt as [o | o t IHt | o t1 IHt1 t2 IHt2 | t IHt ts IHts].
-  - reflexivity.
-  - simpl. destruct o.
-    + apply IHt.
-    + apply IHt.
-    + by apply wf_inv_inv.
-  - simpl. rewrite IHt1. apply IHt2.
-  - simpl. rewrite IHt.
-    by elim: ts IHts => //= t' ts IH [-> /IH ->].
+elim: pt => // [[] ?? | ?? IHt1 ? IHt2 | ? IHt ts IHts] //=.
+  by apply wf_inv_inv.
+  rewrite IHt1. by rewrite IHt2.
+  rewrite IHt. by elim: ts IHts => //= t' ts IH [-> /IH ->].
 Qed.
 
 Lemma normalize_inv_wf pt : wf_inv pt -> normalize_inv pt = pt.
@@ -320,30 +315,15 @@ Proof.
   intros wf. induction pt as [o | o t IHt | o t1 IHt1 t2 IHt2 | t IHt ts IHts].
   - reflexivity.
   - destruct o.
-    + simpl. rewrite (IHt wf). reflexivity.
-    + simpl. rewrite (IHt wf). reflexivity.
-    + simpl. simpl in wf. admit.
-  - admit.
+    + simpl. by rewrite (IHt wf).
+    + simpl. by rewrite (IHt wf).
+    + simpl. simpl in wf. destruct (andP wf) as [n_inv_t wf_t]. rewrite (IHt wf_t). admit.
+  - simpl. simpl in wf. admit.
   - admit.
 Admitted.
 
 Lemma inv_involutive pt : wf_inv pt -> inv (inv pt) = pt.
-Proof.
-  intros wf_pt. destruct pt as [| o t | |].
-  - reflexivity.
-  - destruct o.
-    + reflexivity.
-    + reflexivity.
-    + destruct t as [| [] | |].
-      * reflexivity.
-      * reflexivity.
-      * reflexivity.
-      * discriminate.
-      * reflexivity.
-      * reflexivity.
-  - reflexivity.
-  - reflexivity.
-Qed.
+Proof. case: pt => // [[] t] //. by case: t => // [[]]. Qed.
 
 Lemma inv_eq_op pt1 pt2 :
   wf_inv pt1 -> wf_inv pt2 -> (inv pt1 == pt2) = (pt1 == inv pt2).
