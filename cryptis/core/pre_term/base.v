@@ -410,18 +410,21 @@ have e2 : perm_eq (normalize_exps (pts1' ++ pts2 ++ [:: pt1]))
 by rewrite (perm_trans e2) // -catA.
 Qed.
 
-(* Stopped here *)
 Lemma perm_normalize_exps pts1 pts2 :
-  perm_eq pts1 pts2 -> perm_eq (normalize_exps pts1) (normalize_exps pts2).
+  all wf_inv pts1 -> perm_eq pts1 pts2 -> perm_eq (normalize_exps pts1) (normalize_exps pts2).
 Proof.
-  generalize dependent pts2. induction pts1 as [| pt pts1' IH].
-  - intros pts2 H. rewrite perm_sym in H. rewrite (perm_nilP H). apply perm_refl.
-  - intros pts2 H. rewrite perm_sym in H. destruct (perm_consP H) as [i [u [H1 H2]]].
-    apply perm_trans with (normalize_exps (rot i pts2)).
-    + rewrite H1. simpl. apply / perm_insert_exp / IH. rewrite perm_sym. apply H2.
+elim: pts1 pts2 => // [| pt1 pts1' IH].
+- move => pts2 ?. by rewrite perm_sym => /perm_nilP ->.
+- move => pts2. case /andP => wf1 wfs1. rewrite perm_sym => H.
+  case (perm_consP H) => [i [u [H1 H2]]].
+  apply perm_trans with (normalize_exps (rot i pts2)).
+    + rewrite H1 //. apply /perm_insert_exp /IH => //. by rewrite perm_sym.
     + apply perm_trans with (normalize_exps (take i pts2 ++ drop i pts2)).
-      * apply perm_normalize_exps_catC.
-      * rewrite cat_take_drop. apply perm_refl.
+      have /allP wfs2 : all wf_inv pts2. by rewrite (perm_all _ H) /= wf1.
+      * apply perm_normalize_exps_catC ; apply /allP.
+          move => ? /mem_drop in_pt. by apply wfs2.
+          move => ? /mem_take in_pt. by apply wfs2.
+      * by rewrite cat_take_drop.
 Qed.
 
 Definition exp pt pts :=
