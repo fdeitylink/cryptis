@@ -459,19 +459,22 @@ Proof. by case: pt. Qed.
 Lemma base_expsK pt : is_exp pt -> PTExp (base pt) (exps pt) = pt.
 Proof. by case: pt. Qed.
 
-(**
+(*
 Lemma is_exp_exp pt pts : is_exp (exp pt pts) = (pts != [::]) || is_exp pt.
 Proof. by rewrite /exp size_eq0; case: eqP. Qed.
 *)
 
-(*
-Lemma perm_exp pt pts1 pts2 : all wf_term pts1 -> perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
+Lemma perm_exp pt pts1 pts2 :
+  wf_inv pt -> all wf_inv pts1 -> perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
 Proof.
-move=> pts12; rewrite /exp (perm_size pts12); case: (_ == _) => //.
-have /perm_sort_leP -> // : perm_eq (exps pt ++ pts1) (exps pt ++ pts2).
-by rewrite perm_cat2l.
+move => wf ??. rewrite /exp.
+have /perm_sort_leP -> //: perm_eq (normalize_exps (exps pt ++ pts1)) (normalize_exps (exps pt ++ pts2)).
+  rewrite perm_normalize_exps // ?all_cat.
+  - by case: pt wf => // ?? /andP [? ->].
+  - by rewrite perm_cat2l.
 Qed.
-*)
+
+(*Stopped here*)
 
 Fixpoint normalize pt :=
   match pt with
