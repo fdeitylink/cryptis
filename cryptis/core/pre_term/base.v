@@ -522,10 +522,10 @@ Qed.
 
 Lemma wf_normalize pt : wf_term (normalize pt).
 Proof.
-elim: pt => //=.
-- by move=> _ ? -> ? ->.
-- move=> pt IHpt pts IHpts; apply: wf_exp => //.
-  by elim: pts IHpts {pt IHpt} => //= pt pts IH [-> ?]; rewrite IH.
+elim: pt => //= [[] ?? | ?? -> ? -> | ?? ts IHts] //.
+  exact: wf_inv.
+  apply wf_exp => //. elim: ts IHts => //= [_ ? IHts' [-> ?]]. exact: IHts'.
+Qed.
 Qed.
 
 Lemma normalize_wf pt : wf_term pt -> normalize pt = pt.
