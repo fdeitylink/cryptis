@@ -334,7 +334,7 @@ Proof. by case: pt => // - [] ? // /andP []. Qed.
 Lemma wf_insert_exp pt pts :
   wf_term pt -> all wf_term pts -> all wf_term (insert_exp pt pts).
 Proof.
-move => wf wfs. rewrite /insert_exp. case: ifP => _.
+rewrite /insert_exp => wf wfs. case: ifP => _.
   by apply /allP => ? /mem_rem /(allP wfs).
   by rewrite /= wf.
 Qed.
@@ -355,7 +355,7 @@ Lemma perm_insert_exp pt pts1 pts2 :
   perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
 Proof.
 move => H. rewrite /insert_exp (perm_mem H). case: (inv pt \in pts2) => //=.
-  by apply perm_rem.
+  exact: perm_rem.
   by rewrite perm_cons.
 Qed.
 
@@ -395,8 +395,8 @@ Proof.
 move=> wf_pt; elim: pts => [|pt' pts' IH] /= => [_|/andP [wf_pt' /IH {}IH]].
 - apply perm_refl.
 - apply perm_trans with (insert_exp pt' (insert_exp pt (normalize_exps pts'))).
-    by apply perm_insert_exp_swap.
-    by apply perm_insert_exp.
+    exact: perm_insert_exp_swap.
+    exact: perm_insert_exp.
 Qed.
 
 Lemma perm_normalize_exps_catC pts1 pts2 :
@@ -431,8 +431,8 @@ elim: pts1 pts2 => // [| pt1 pts1' IH].
     + apply perm_trans with (normalize_exps (take i pts2 ++ drop i pts2)).
       have /allP wfs2 : all wf_term pts2. by rewrite (perm_all _ H) /= wf1.
       * apply perm_normalize_exps_catC; apply /allP.
-          move => ? /mem_drop in_pt. by apply wfs2.
-          move => ? /mem_take in_pt. by apply wfs2.
+          move => ? /mem_drop in_pt. exact: wfs2.
+          move => ? /mem_take in_pt. exact: wfs2.
       * by rewrite cat_take_drop.
 Qed.
 
