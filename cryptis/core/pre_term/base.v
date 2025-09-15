@@ -291,10 +291,10 @@ Definition insert_exp pt pts :=
   if inv pt \in pts then rem (inv pt) pts
   else pt :: pts.
 
-Definition normalize_exps := foldr insert_exp [::].
+Definition cancel_exps := foldr insert_exp [::].
 
 Definition exp pt pts :=
-  let normed := sort <=%O (normalize_exps (exps pt ++ pts)) in
+  let normed := sort <=%O (cancel_exps (exps pt ++ pts)) in
   if size normed == 0 then base pt
   else PTExp (base pt) normed.
 
@@ -339,7 +339,7 @@ rewrite /insert_exp => wf wfs. case: ifP => _.
   by rewrite /= wf.
 Qed.
 
-Lemma wf_normalize_exps pts : all wf_term pts -> all wf_term (normalize_exps pts).
+Lemma wf_cancel_exps pts : all wf_term pts -> all wf_term (cancel_exps pts).
 Proof. elim: pts => [| ?? IH] // /andP [??]. by rewrite wf_insert_exp // IH. Qed.
 
 Lemma inv_Nid pt : inv pt != pt.
@@ -391,49 +391,49 @@ have [pt2_pts|pt2_pts] := ifPn (inv pt2 \in pts).
   rewrite perm_rcons; split => //=; by rewrite -cats1.
 Qed.
 
-Lemma perm_normalize_exps_rcons pt pts :
+Lemma perm_cancel_exps_rcons pt pts :
   wf_term pt -> all wf_term pts ->
-  perm_eq (normalize_exps (pt :: pts)) (normalize_exps (rcons pts pt)).
+  perm_eq (cancel_exps (pt :: pts)) (cancel_exps (rcons pts pt)).
 Proof.
 move=> wf_pt; elim: pts => [|pt' pts' IH] /= => [_|/andP [wf_pt' /IH {}IH]].
 - apply perm_refl.
-- apply perm_trans with (insert_exp pt' (insert_exp pt (normalize_exps pts'))).
+- apply perm_trans with (insert_exp pt' (insert_exp pt (cancel_exps pts'))).
     exact: perm_insert_exp_swap.
     exact: perm_insert_exp.
 Qed.
 
-Lemma perm_normalize_exps_catC pts1 pts2 :
+Lemma perm_cancel_exps_catC pts1 pts2 :
   all wf_term pts1 -> all wf_term pts2 ->
-  perm_eq (normalize_exps (pts1 ++ pts2)) (normalize_exps (pts2 ++ pts1)).
+  perm_eq (cancel_exps (pts1 ++ pts2)) (cancel_exps (pts2 ++ pts1)).
 Proof.
 move=> wf1 wf2.
 elim: pts1 => [|pt1 pts1' IH] /= in pts2 wf1 wf2 *.
   by rewrite cats0 perm_refl.
 case/andP: wf1 => [wf wf1].
-have e1 : perm_eq (normalize_exps (pt1 :: (pts1' ++ pts2)))
-                  (normalize_exps (rcons (pts1' ++ pts2) pt1)).
-  apply: perm_normalize_exps_rcons => //.
+have e1 : perm_eq (cancel_exps (pt1 :: (pts1' ++ pts2)))
+                  (cancel_exps (rcons (pts1' ++ pts2) pt1)).
+  apply: perm_cancel_exps_rcons => //.
   by rewrite all_cat wf1.
 rewrite (perm_trans e1) //.
 rewrite -cats1 -catA.
-have e2 : perm_eq (normalize_exps (pts1' ++ pts2 ++ [:: pt1]))
-                  (normalize_exps ((pts2 ++ [:: pt1]) ++ pts1')).
+have e2 : perm_eq (cancel_exps (pts1' ++ pts2 ++ [:: pt1]))
+                  (cancel_exps ((pts2 ++ [:: pt1]) ++ pts1')).
   by apply: IH; rewrite // all_cat wf2 /= wf.
 by rewrite (perm_trans e2) // -catA.
 Qed.
 
-Lemma perm_normalize_exps pts1 pts2 :
-  all wf_term pts1 -> perm_eq pts1 pts2 -> perm_eq (normalize_exps pts1) (normalize_exps pts2).
+Lemma perm_cancel_exps pts1 pts2 :
+  all wf_term pts1 -> perm_eq pts1 pts2 -> perm_eq (cancel_exps pts1) (cancel_exps pts2).
 Proof.
 elim: pts1 pts2 => // [| pt1 pts1' IH].
 - move => pts2 _. by rewrite perm_sym => /perm_nilP ->.
 - move => pts2. case /andP => wf1 wfs1. rewrite perm_sym => H.
   case (perm_consP H) => [i [u [H1 H2]]].
-  apply perm_trans with (normalize_exps (rot i pts2)).
+  apply perm_trans with (cancel_exps (rot i pts2)).
     + rewrite H1 //. apply /perm_insert_exp /IH => //. by rewrite perm_sym.
-    + apply perm_trans with (normalize_exps (take i pts2 ++ drop i pts2)).
+    + apply perm_trans with (cancel_exps (take i pts2 ++ drop i pts2)).
       have /allP wfs2 : all wf_term pts2. by rewrite (perm_all _ H) /= wf1.
-      * apply perm_normalize_exps_catC; apply /allP.
+      * apply perm_cancel_exps_catC; apply /allP.
           move => ? /mem_drop in_pt. exact: wfs2.
           move => ? /mem_take in_pt. exact: wfs2.
       * by rewrite cat_take_drop.
@@ -472,8 +472,8 @@ Lemma perm_exp pt pts1 pts2 :
   wf_term pt -> all wf_term pts1 -> perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
 Proof.
 move => wf ??. rewrite /exp.
-have /perm_sort_leP -> //: perm_eq (normalize_exps (exps pt ++ pts1)) (normalize_exps (exps pt ++ pts2)).
-  rewrite perm_normalize_exps //.
+have /perm_sort_leP -> //: perm_eq (cancel_exps (exps pt ++ pts1)) (cancel_exps (exps pt ++ pts2)).
+  rewrite perm_cancel_exps //.
   - by rewrite all_cat wf_exps.
   - by rewrite perm_cat2l.
 Qed.
@@ -501,11 +501,11 @@ case: ifP => in_inv_pt in in_pt' *.
       * exact: canceled.
 Qed.
 
-Lemma invs_canceled_normalize_exps pts : all wf_term pts -> invs_canceled (normalize_exps pts).
+Lemma invs_canceled_cancel_exps pts : all wf_term pts -> invs_canceled (cancel_exps pts).
 Proof.
 elim: pts => // [?? IH] /andP [??].
 apply invs_canceled_insert_exp => //.
-  exact: wf_normalize_exps.
+  exact: wf_cancel_exps.
   exact: IH.
 Qed.
 
@@ -514,10 +514,10 @@ Lemma wf_exp pt pts :
 Proof.
 rewrite /exp fun_if /= => ??. rewrite wf_base //. case: (altP eqP) => // ptsN0.
 rewrite base_Nexp //.
-rewrite all_sort wf_normalize_exps ?all_cat ?wf_exps //.
+rewrite all_sort wf_cancel_exps ?all_cat ?wf_exps //.
 rewrite -size_eq0 ptsN0.
 rewrite sort_le_sorted.
-by rewrite invs_canceled_sort invs_canceled_normalize_exps ?all_cat ?wf_exps.
+by rewrite invs_canceled_sort invs_canceled_cancel_exps ?all_cat ?wf_exps.
 Qed.
 
 Lemma wf_normalize pt : wf_term (normalize pt).
@@ -544,8 +544,8 @@ have /negbTE -> : inv pt \notin pts. apply: contraNN x => in_pts. by rewrite in_
 reflexivity.
 Qed.
 
-Lemma normalize_exps_canceled pts :
-   invs_canceled pts -> normalize_exps pts = pts.
+Lemma cancel_exps_canceled pts :
+   invs_canceled pts -> cancel_exps pts = pts.
 Proof.
 elim: pts => // [?? IH] canceled /=.
 rewrite insert_exp_canceled //; rewrite IH //; exact: (invs_canceled_cons canceled).
@@ -560,7 +560,7 @@ elim: pt => //.
   have -> : [seq normalize i | i <- ts] = ts.
   elim: (ts) IHts wf_ts => // [t' ts' IHts' [IHt' ?] /andP [??]] /=.
   by rewrite IHt' // IHts'.
-  by rewrite IH // /exp exps_expN // normalize_exps_canceled //
+  by rewrite IH // /exp exps_expN // cancel_exps_canceled //
     size_sort size_eq0 tsN0 base_expN // (sorted_sort le_trans).
 Qed.
 
