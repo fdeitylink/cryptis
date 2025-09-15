@@ -478,8 +478,6 @@ have /perm_sort_leP -> //: perm_eq (cancel_exps (exps pt ++ pts1)) (cancel_exps 
   - by rewrite perm_cat2l.
 Qed.
 
-(*Stopped here*)
-
 Lemma base_Nexp pt : wf_term pt -> ~~ is_exp (base pt).
 Proof. by case: pt => // ?? /and5P []. Qed.
 
@@ -569,12 +567,11 @@ Proof. apply: normalize_wf; exact: wf_normalize. Qed.
 
 Lemma normalize_exp_wf pt pts :
   let pt' := normalize (PTExp pt pts) in
-  pts <> [::] ->
+  exps pt' <> [::] ->
   wf_term (PTExp (base pt') (exps pt')).
 Proof.
-move=> pt' /eqP/negbTE ptsN0.
-rewrite (_ : PTExp _ _ = pt') ?wf_normalize //.
-by rewrite /pt' /= /exp size_map size_eq0 ptsN0 /=.
+move => pt' /eqP expsN0. rewrite base_expsK ?wf_normalize //.
+by apply: contraNT expsN0 => /exps_expN ->.
 Qed.
 
 Module Exports.
