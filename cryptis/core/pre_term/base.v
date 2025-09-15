@@ -526,21 +526,42 @@ elim: pt => //= [[] ?? | ?? -> ? -> | ?? ts IHts] //.
   exact: wf_inv.
   apply wf_exp => //. elim: ts IHts => //= [_ ? IHts' [-> ?]]. exact: IHts'.
 Qed.
+
+Lemma invs_canceled_cons pt pts : invs_canceled (pt :: pts) -> invs_canceled pts.
+Proof.
+rewrite /invs_canceled /= => /andP [_ /allP canceled].
+apply /allP => t t_in.
+have x: inv t \notin pt :: pts. exact: canceled.
+apply: contraNN x => in_pts. by rewrite in_cons in_pts orbT.
+Qed.
+
+Lemma insert_exp_canceled pt pts :
+  invs_canceled (pt :: pts) -> insert_exp pt pts = pt :: pts.
+Proof.
+rewrite /insert_exp => /allP canceled.
+have x: inv pt \notin pt :: pts. apply /canceled /mem_head.
+have /negbTE -> : inv pt \notin pts. apply: contraNN x => in_pts. by rewrite in_cons in_pts orbT.
+reflexivity.
+Qed.
+
+Lemma normalize_exps_canceled pts :
+   invs_canceled pts -> normalize_exps pts = pts.
+Proof.
+elim: pts => // [?? IH] canceled /=.
+rewrite insert_exp_canceled //; rewrite IH //; exact: (invs_canceled_cons canceled).
 Qed.
 
 Lemma normalize_wf pt : wf_term pt -> normalize pt = pt.
 Proof.
-elim: pt => //=.
-- by move=> ?? IH ?; rewrite IH.
-- by move=> ? pt1 IH1 pt2 IH2 /andP [??]; rewrite IH1 ?IH2.
-move=> pt IH1 pts IH2 /and5P [wf_pt ptNexp wf_pts ptsN0 sorted_pts].
-rewrite /exp size_map size_eq0 (negbTE ptsN0) IH1 //.
-rewrite base_expN // exps_expN //=.
-suff -> : map normalize pts = pts by rewrite sort_le_id.
-elim: pts {ptsN0 sorted_pts} => //= pt' pts IH in IH2 wf_pts *.
-case: IH2 => IHpt' IHpts.
-case/andP: wf_pts => wf_pt' wf_pts.
-by rewrite IHpt' // IH.
+elim: pt => //.
+- move => [[] ? IH ? | ? IH ? | ? IH /andP [??]] /=; rewrite ?IH //. exact: inv_invN.
+- by move => /= ?? IH1 ? IH2 /andP [/IH1 -> /IH2 ->].
+- move => ? IH ts IHts /and5P [? ? wf_ts /negbTE tsN0 /andP [??]] /=.
+  have -> : [seq normalize i | i <- ts] = ts.
+  elim: (ts) IHts wf_ts => // [t' ts' IHts' [IHt' ?] /andP [??]] /=.
+  by rewrite IHt' // IHts'.
+  by rewrite IH // /exp exps_expN // normalize_exps_canceled //
+    size_sort size_eq0 tsN0 base_expN // (sorted_sort le_trans).
 Qed.
 
 Lemma normalize_idem pt : normalize (normalize pt) = normalize pt.
