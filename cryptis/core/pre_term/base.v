@@ -342,6 +342,9 @@ Qed.
 Lemma wf_normalize_exps pts : all wf_term pts -> all wf_term (normalize_exps pts).
 Proof. elim: pts => [| ?? IH] // /andP [??]. by rewrite wf_insert_exp // IH. Qed.
 
+Lemma inv_Nid pt : inv pt != pt.
+Proof. case: pt => // - [] // ?. apply /eqP => /(f_equal height) /=. lia. Qed.
+
 Lemma inv_involutive pt : wf_term pt -> inv (inv pt) = pt.
 Proof. case: pt => // - [] //. by case => // - []. Qed.
 
@@ -457,6 +460,9 @@ Proof. by case: pt. Qed.
 Lemma base_expsK pt : is_exp pt -> PTExp (base pt) (exps pt) = pt.
 Proof. by case: pt. Qed.
 
+Lemma inv_invN pt : ~~ is_inv pt -> inv pt = PT1 O1Inv pt.
+Proof. by case: pt => // - []. Qed.
+
 (*
 Lemma is_exp_exp pt pts : is_exp (exp pt pts) = (pts != [::]) || is_exp pt.
 Proof. by rewrite /exp size_eq0; case: eqP. Qed.
@@ -473,6 +479,9 @@ have /perm_sort_leP -> //: perm_eq (normalize_exps (exps pt ++ pts1)) (normalize
 Qed.
 
 (*Stopped here*)
+
+Lemma base_Nexp pt : wf_term pt -> ~~ is_exp (base pt).
+Proof. by case: pt => // ?? /and5P []. Qed.
 
 Lemma wf_exp pt pts :
   wf_term pt ->
