@@ -483,18 +483,41 @@ Qed.
 Lemma base_Nexp pt : wf_term pt -> ~~ is_exp (base pt).
 Proof. by case: pt => // ?? /and5P []. Qed.
 
-Lemma wf_exp pt pts :
-  wf_term pt ->
-  all wf_term pts ->
-  wf_term (exp pt pts).
+Lemma invs_canceled_sort pts : invs_canceled (sort <=%O pts) = invs_canceled pts.
+Proof. rewrite /invs_canceled all_sort. apply eq_all => ?. by rewrite mem_sort. Qed.
+
+Lemma invs_canceled_insert_exp pt pts :
+  wf_term pt -> all wf_term pts -> invs_canceled pts -> invs_canceled (insert_exp pt pts).
 Proof.
-rewrite /exp; case: (altP eqP) => //= ptsN0 wf_pt wf_pts.
-have ->: wf_term (base pt) by case: pt wf_pt => //= ?? /and5P [].
-have ->: ~~ is_exp (base pt) by case: pt wf_pt => //= ?? /and5P [].
-rewrite all_sort all_cat wf_pts.
-have ->: all wf_term (exps pt) by case: pt wf_pt => //= ?? /and5P [].
-rewrite sort_le_sorted andbT -size_eq0 size_sort size_cat addn_eq0 negb_and.
-by rewrite ptsN0 orbT.
+rewrite /invs_canceled => wf /allP wfs /allP canceled. apply /allP. rewrite /insert_exp => pt' in_pt'.
+case: ifP => in_inv_pt in in_pt' *.
+  - have x: inv pt' \notin pts. apply canceled. exact: (mem_rem in_pt').
+    apply: contraNN x. exact: mem_rem.
+  - rewrite in_cons in in_pt'. case /orP: in_pt' => [/eqP -> | in_pts] //.
+    + by rewrite in_cons negb_or inv_Nid in_inv_pt.
+    + rewrite in_cons negb_or. apply /andP. split.
+      * apply /eqP => /(f_equal inv). rewrite (inv_involutive (wfs _ in_pts)) => eq.
+        rewrite eq in in_pts. by rewrite in_pts in in_inv_pt.
+      * exact: canceled.
+Qed.
+
+Lemma invs_canceled_normalize_exps pts : all wf_term pts -> invs_canceled (normalize_exps pts).
+Proof.
+elim: pts => // [?? IH] /andP [??].
+apply invs_canceled_insert_exp => //.
+  exact: wf_normalize_exps.
+  exact: IH.
+Qed.
+
+Lemma wf_exp pt pts :
+  wf_term pt -> all wf_term pts -> wf_term (exp pt pts).
+Proof.
+rewrite /exp fun_if /= => ??. rewrite wf_base //. case: (altP eqP) => // ptsN0.
+rewrite base_Nexp //.
+rewrite all_sort wf_normalize_exps ?all_cat ?wf_exps //.
+rewrite -size_eq0 ptsN0.
+rewrite sort_le_sorted.
+by rewrite invs_canceled_sort invs_canceled_normalize_exps ?all_cat ?wf_exps.
 Qed.
 
 Lemma wf_normalize pt : wf_term (normalize pt).
