@@ -238,15 +238,20 @@ Lemma fold_termE pt :
   | PreTerm.PT1 (O1Key kt) pt => TKey kt (fold_term pt)
   | PreTerm.PT2 O2Seal k pt => TSeal (fold_term k) (fold_term pt)
   | PreTerm.PT1 O1Hash pt => THash (fold_term pt)
+  | PreTerm.PT1 O1Inv pt => TInv (fold_term pt)
   | PreTerm.PTExp pt pts => TExpN (fold_term pt) (map fold_term pts)
   end.
 Proof.
-apply/unfold_term_inj. rewrite [fold_term]unlock.
-case: pt => //= pt pts; rewrite ?unfold_TExpN.
-case: eqP => [->|/eqP ptsN0] //=.
-rewrite -unfold_fold unlock -map_comp PreTerm.base_expsK.
-- by under [in LHS]eq_map => ? do rewrite -unfold_fold unlock.
-- by rewrite PreTerm.is_exp_exp -size_eq0 size_map size_eq0 ptsN0.
+apply /unfold_term_inj. rewrite unfold_fold.
+case: pt => //=.
+- by case.
+- case => [?? | ? | p] //=.
+  + by rewrite unfold_fold.
+  + by rewrite unfold_fold.
+  + by rewrite unfold_TInv unfold_fold.
+- case => [?? | ??] /=; by rewrite !unfold_fold.
+- move => pt pts. rewrite unfold_TExpN unfold_fold -map_comp.
+  by under eq_map => ? do rewrite -unfold_fold.
 Qed.
 
 Definition base t :=
