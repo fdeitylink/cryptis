@@ -130,14 +130,15 @@ Qed.
 
 Lemma unfold_fold pt : unfold_term (fold_term pt) = PreTerm.normalize pt.
 Proof.
-rewrite [fold_term]unlock; elim: pt => //=.
-- by case.
-- by case=> [?|] /= ? ->.
-- by case=> [] /= ? -> ? ->.
-- move=> pt IHpt pts IHpts.
-  case: eqP => [->|/eqP ptsN0] //=.
-  rewrite PreTerm.base_expsK // PreTerm.is_exp_exp.
-  by case: (pts) ptsN0.
+rewrite [fold_term]unlock. rewrite /fold_term_def.
+have := PreTerm.wf_normalize pt. elim: (PreTerm.normalize pt) => //=.
+- move => [] //.
+- move => [?||] t IH wf_t /=.
+  + by rewrite IH.
+  + by rewrite IH.
+  + move: (boolP _). move: {3} (_ && _) => b. case => //. by rewrite wf_t.
+- move => [] t1 IH1 t2 IH2 /andP [wf1 wf2] /=; rewrite IH1 //; rewrite IH2 //.
+- move => t IH ts IHs wf. move: (boolP _). move: {3} (_ && _) => b. case => //. by rewrite wf.
 Qed.
 
 Lemma fold_termK pt : PreTerm.wf_term pt -> unfold_term (fold_term pt) = pt.
