@@ -287,7 +287,7 @@ Proof. by apply: TExpN_perm; rewrite perm_catC. Qed.
 Lemma base_TExpN t ts : base (TExpN t ts) = base t.
 Proof.
 apply: unfold_term_inj; rewrite !unfold_base unfold_TExpN.
-by case: ts=> [|t' ts] //=.
+rewrite PreTerm.base_exp //. exact: wf_unfold_term.
 Qed.
 
 Lemma exps_TExpN t ts : exps (TExpN t ts) = sort <=%O (exps t ++ ts).
