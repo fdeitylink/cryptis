@@ -454,14 +454,31 @@ Qed.
 Lemma base_expN pt : ~~ is_exp pt -> base pt = pt.
 Proof. by case: pt. Qed.
 
+Lemma base_Nexp pt : wf_term pt -> ~~ is_exp (base pt).
+Proof. by case: pt => // ?? /and5P []. Qed.
+
+Lemma base_idem pt : wf_term pt -> base (base pt) = base pt.
+Proof. case pt => //= ?? /and5P [_ ? *]. exact: base_expN. Qed.
+
+Lemma base_exp pt pts : wf_term pt -> base (exp pt pts) = base pt.
+Proof. rewrite /exp => ?. case: ifP => //=. by rewrite base_idem. Qed.
+
 Lemma exps_expN pt : ~~ is_exp pt -> exps pt = [::].
 Proof. by case: pt. Qed.
+
+Lemma exps_base pt : wf_term pt -> exps (base pt) = [::].
+Proof. case: pt => //= ?? /and5P [_ ? *]. exact: exps_expN. Qed.
+
+Lemma exps_exp pt pts :
+  wf_term pt ->
+  exps (exp pt pts) = sort <=%O (cancel_exps (exps pt ++ pts)).
+Proof. rewrite /exp => ?. case: ifP => //=. rewrite exps_base //. by case: sort. Qed.
 
 Lemma base_expsK pt : is_exp pt -> PTExp (base pt) (exps pt) = pt.
 Proof. by case: pt. Qed.
 
 Lemma inv_invN pt : ~~ is_inv pt -> inv pt = PT1 O1Inv pt.
-Proof. by case: pt => // - []. Qed.
+Proof. by case: pt => - []. Qed.
 
 (*
 Lemma is_exp_exp pt pts : is_exp (exp pt pts) = (pts != [::]) || is_exp pt.
@@ -477,9 +494,6 @@ have /perm_sort_leP -> //: perm_eq (cancel_exps (exps pt ++ pts1)) (cancel_exps 
   - by rewrite all_cat wf_exps.
   - by rewrite perm_cat2l.
 Qed.
-
-Lemma base_Nexp pt : wf_term pt -> ~~ is_exp (base pt).
-Proof. by case: pt => // ?? /and5P []. Qed.
 
 Lemma invs_canceled_sort pts : invs_canceled (sort <=%O pts) = invs_canceled pts.
 Proof. rewrite /invs_canceled all_sort. apply eq_all => ?. by rewrite mem_sort. Qed.
