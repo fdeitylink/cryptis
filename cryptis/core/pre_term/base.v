@@ -439,6 +439,20 @@ elim: pts1 pts2 => // [| pt1 pts1' IH].
       * by rewrite cat_take_drop.
 Qed.
 
+Lemma in_insert_exps pt1 pt2 pts : pt1 \in insert_exp pt2 pts -> pt1 \in pt2 :: pts.
+Proof.
+rewrite /insert_exp. case: ifP => //=.
+move => _ /mem_rem in_pts. by rewrite in_cons orbC in_pts.
+Qed.
+
+Lemma in_cancel_exps pt pts : pt \in cancel_exps pts -> pt \in pts.
+Proof.
+elim: pts => //= [?? IH].
+move => /in_insert_exps /orP [/eqP -> | /IH in_pts'].
+- exact: mem_head.
+- by rewrite in_cons orbC in_pts'.
+Qed.
+
 (*
 Lemma tsize_exp t ts :
   tsize (exp t ts) =
