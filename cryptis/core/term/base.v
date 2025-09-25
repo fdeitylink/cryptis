@@ -16,6 +16,7 @@ Inductive term :=
 | TKey of key_type & term
 | TSeal of term & term
 | THash of term
+| TInv' pt of PreTerm.wf_term (PreTerm.PT1 O1Inv pt)
 | TExpN' pt pts of PreTerm.wf_term (PreTerm.PTExp pt pts).
 
 Record aenc_key := AEncKey {
