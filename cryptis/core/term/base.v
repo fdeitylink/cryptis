@@ -81,22 +81,29 @@ Fixpoint unfold_term t :=
   | TKey kt t => PreTerm.PT1 (O1Key kt) (unfold_term t)
   | TSeal k t => PreTerm.PT2 O2Seal (unfold_term k) (unfold_term t)
   | THash t => PreTerm.PT1 O1Hash (unfold_term t)
+  | TInv' pt _ => PreTerm.PT1 O1Inv pt
   | TExpN' pt pts _ => PreTerm.PTExp pt pts
   end.
 
-Fixpoint fold_term_def pt :=
+Fixpoint fold_term_predef pt :=
   match pt with
   | PreTerm.PT0 (O0Int n) => TInt n
-  | PreTerm.PT2 O2Pair pt1 pt2 => TPair (fold_term_def pt1) (fold_term_def pt2)
+  | PreTerm.PT2 O2Pair pt1 pt2 => TPair (fold_term_predef pt1) (fold_term_predef pt2)
   | PreTerm.PT0 (O0Nonce l) => TNonce l
-  | PreTerm.PT1 (O1Key kt) pt => TKey kt (fold_term_def pt)
-  | PreTerm.PT2 O2Seal k pt => TSeal (fold_term_def k) (fold_term_def pt)
-  | PreTerm.PT1 O1Hash pt => THash (fold_term_def pt)
+  | PreTerm.PT1 (O1Key kt) pt => TKey kt (fold_term_predef pt)
+  | PreTerm.PT2 O2Seal k pt => TSeal (fold_term_predef k) (fold_term_predef pt)
+  | PreTerm.PT1 O1Hash pt => THash (fold_term_predef pt)
+  | PreTerm.PT1 O1Inv pt' =>
+    if boolP (PreTerm.wf_term (PreTerm.PT1 O1Inv pt')) is AltTrue pf then
+      TInv' pt' pf
+    else TInt 0 (*should never*)
   | PreTerm.PTExp pt' pts' =>
-    if pts' =P [::] is ReflectF pts'N0 then
-      TExpN' _ _ (PreTerm.normalize_exp_wf pt' pts' pts'N0)
-    else fold_term_def pt'
+    if boolP (PreTerm.wf_term (PreTerm.PTExp pt' pts')) is AltTrue pf then
+      TExpN' pt' pts' pf
+    else TInt 0 (*should never*)
   end.
+
+Definition fold_term_def pt := fold_term_predef (PreTerm.normalize pt).
 
 Lemma wf_unfold_term t : PreTerm.wf_term (unfold_term t).
 Proof. by elim/term_ind': t=> //= ? -> ? ->. Qed.
