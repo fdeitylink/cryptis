@@ -290,14 +290,21 @@ apply: unfold_term_inj; rewrite !unfold_base unfold_TExpN.
 rewrite PreTerm.base_exp //. exact: wf_unfold_term.
 Qed.
 
-Lemma exps_TExpN t ts : exps (TExpN t ts) = sort <=%O (exps t ++ ts).
+Definition cancel_exps ts :=
+  map fold_term (PreTerm.cancel_exps (map unfold_term ts)).
+
+Lemma exps_TExpN t ts :
+  exps (TExpN t ts) = sort <=%O (cancel_exps (exps t ++ ts)).
 Proof.
-apply: (inj_map unfold_term_inj).
-rewrite unfold_exps -sort_map map_cat unfold_exps unfold_TExpN.
-rewrite /PreTerm.exp size_map size_eq0.
-case: (altP eqP) => [->|tsN0] //=.
-rewrite cats0 sort_le_id //.
-by case: (unfold_term t) (wf_unfold_term t) => //= ?? /and5P [].
+apply: (inj_map unfold_term_inj). rewrite unfold_exps -sort_map -map_comp.
+under eq_map => ? do rewrite /= unfold_fold.
+rewrite unfold_TExpN PreTerm.exps_exp ?wf_unfold_term // map_cat unfold_exps.
+rewrite map_id_in // => ? /PreTerm.in_cancel_exps pt_in. apply PreTerm.normalize_wf.
+move: pt_in; rewrite mem_cat => /orP [? | /mapP [? _] ->].
+- have /allP H: all PreTerm.wf_term (PreTerm.exps (unfold_term t)).
+  apply PreTerm.wf_exps. apply wf_unfold_term.
+  exact: H.
+- apply wf_unfold_term.
 Qed.
 
 Definition is_nonce t :=
