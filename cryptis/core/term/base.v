@@ -115,19 +115,17 @@ Canonical fold_term_unlockable := [unlockable of fold_term].
 
 Lemma unfold_termK : cancel unfold_term fold_term.
 Proof.
-rewrite [fold_term]unlock.
-elim/term_ind' => //=.
-- by move=> t1 IH1 t2 IH2; rewrite IH1 IH2.
-- by move=> kt t IH; rewrite IH.
-- by move=> t1 IH1 t2 IH2; rewrite IH1 IH2.
-- by move=> t IH; rewrite IH.
-- move=> pt pts wf.
-  have /and5P [wf_pt ptNexp wf_pts ptsN0 sorted_pts] := wf.
-  case: eqP ptsN0 => // ptsN0 _.
-  move: (PreTerm.normalize_exp_wf _ _ _).
-  set pt' := PreTerm.normalize _.
-  rewrite -[PreTerm.exp _ _]/pt' /pt' PreTerm.normalize_wf //=.
-  move=> ?; apply: congr1; exact: bool_irrelevance.
+rewrite [fold_term]unlock => t.
+rewrite /fold_term_def PreTerm.normalize_wf ?wf_unfold_term //.
+elim /term_ind': t => //=.
+- by move => t1 -> t2 ->.
+- by move => kt t ->.
+- by move => t1 -> t2 ->.
+- by move => t ->.
+- move => pt wf. move: (TInv' pt) (wf) => /=. rewrite wf. move: (boolP true).
+  move: {3} (true) => b pf. case: pf => // ? t ?. congr t. apply: bool_irrelevance.
+- move => pt pts wf. move: (TExpN' pt pts) (wf) => /=. rewrite wf. move: (boolP true).
+  move: {3} (true) => b pf. case: pf => // ? t ?. congr t. apply: bool_irrelevance.
 Qed.
 
 Lemma unfold_fold pt : unfold_term (fold_term pt) = PreTerm.normalize pt.
