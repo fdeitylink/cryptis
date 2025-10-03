@@ -151,7 +151,7 @@ Lemma twp_eq_term_op1 E (o1 o2 : term_op1) :
   ⊢ WP (eq_term_op1 (repr o1) (repr o2)) @ E
     [{ v, ⌜v = #(bool_decide (o1 = o2))⌝}].
 Proof.
-case: o1 o2 => [o1|] [o2|] /=; wp_lam; wp_pures => //.
+case: o1 o2 => [o1||] [o2||] /=. all: wp_lam; wp_pures => //.
 iApply twp_wand; first wp_apply twp_eq_key_type.
 iIntros (?) "->". iPureIntro.
 congr (# (LitBool _)). apply: bool_decide_ext.
@@ -241,7 +241,7 @@ Lemma twp_leq_term_op1 E (o1 o2 : term_op1) :
     [{ v, ⌜v = #(o1 <= o2)%O⌝}].
 Proof.
 rewrite PreTerm.op1_leqE.
-case: o1 o2 => [k1|] [k2|] /=; wp_lam; wp_pures => //.
+case: o1 o2 => [k1||] [k2||] /=; wp_lam; wp_pures => //.
 wp_lam; wp_pures. iPureIntro.
 by case: k1 k2 => [] [].
 Qed.
