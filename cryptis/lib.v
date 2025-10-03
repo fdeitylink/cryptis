@@ -382,6 +382,24 @@ Definition find_list : val := rec: "loop" "f" "l" :=
   | NONE => NONE
   end.
 
+Definition mem_list : val :=
+  λ: "v" "l",
+    match: find_list (λ: "m", "m" = "v") "l" with
+      SOME "r" => #true
+    | NONE => #false
+    end.
+
+Definition rem_list : val := rec: "loop" "v" "l" :=
+  match: "l" with
+    SOME "p" =>
+      let: "head" := Fst "p" in
+      let: "tail" := Snd "p" in
+      if: "head" = "v"
+      then "tail"
+      else SOME ("head", "loop" "v" "tail")
+  | NONE => NONE
+  end.
+
 Definition filter_list : val := rec: "loop" "f" "l" :=
   match: "l" with
     SOME "p" =>
@@ -414,6 +432,19 @@ Definition insert_sorted : val := rec: "loop" "le" "x" "l" :=
     if: "le" "x" "y" then SOME ("x", SOME ("y", "l"))
     else SOME ("y", "loop" "le" "x" "l")
   end.
+
+Definition inner_insertion_sort : val := rec: "loop" "le" "l1" "l2" :=
+  match: "l1" with
+    NONE => "l2"
+  | SOME "l" =>
+    let: "y" := Fst "l" in
+    let: "l" := Snd "l" in
+    "loop" "le" "l" (insert_sorted "le" "y" "l2")
+  end.
+
+Definition insertion_sort : val :=
+  λ: "le" "l",
+    inner_insertion_sort "le" "l" NONE.
 
 Definition leq_list : val := rec: "loop" "eq" "le" "l1" "l2" :=
   match: "l1" with
