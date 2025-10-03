@@ -383,18 +383,18 @@ Definition find_list : val := rec: "loop" "f" "l" :=
   end.
 
 Definition mem_list : val :=
-  λ: "v" "l",
-    match: find_list (λ: "m", "m" = "v") "l" with
+  λ: "eq" "v" "l",
+    match: find_list (λ: "m", "eq" "m" "v") "l" with
       SOME "r" => #true
     | NONE => #false
     end.
 
-Definition rem_list : val := rec: "loop" "v" "l" :=
+Definition rem_list : val := rec: "loop" "eq" "v" "l" :=
   match: "l" with
     SOME "p" =>
       let: "head" := Fst "p" in
       let: "tail" := Snd "p" in
-      if: "head" = "v"
+      if: "eq" "head" "v"
       then "tail"
       else SOME ("head", "loop" "v" "tail")
   | NONE => NONE
