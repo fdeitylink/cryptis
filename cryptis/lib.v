@@ -396,7 +396,7 @@ Definition rem_list : val := rec: "loop" "eq" "v" "l" :=
       let: "tail" := Snd "p" in
       if: "eq" "head" "v"
       then "tail"
-      else SOME ("head", "loop" "v" "tail")
+      else SOME ("head", "loop" "eq" "v" "tail")
   | NONE => NONE
   end.
 
@@ -878,6 +878,32 @@ case f_x: (f x); wp_pures; by iApply "Hpost".
 Qed.
 
 End ListLemmas.
+
+Section ListLemmasEq.
+
+Import ssreflect.eqtype.
+Variable (A : eqType).
+Context `{!Repr A, !heapGS Σ}.
+
+Lemma wp_rem_list (eqImpl : heap_lang.val) (v : A) (l : list A) E :
+  (∀ x y : A, {{{ True }}}
+    eqImpl (repr x) (repr y) @ E
+  {{{ RET #(eq_op x y); True }}}) →
+  {{{ True }}}
+    rem_list eqImpl (repr v) (repr l) @ E
+  {{{ RET (repr (seq.rem v l)); True }}}.
+Proof.
+  rewrite repr_list_unseal /=.
+  iIntros "%eqP"; iLöb as "IH" forall (l); iIntros "%Φ _ Hpost".
+  wp_lam. wp_pures.
+  case: l => [|x l] /=; wp_pures; first by iApply "Hpost".
+  wp_apply eqP => //. iIntros "_".
+  case: (x == v); wp_pures; first by iApply "Hpost".
+  wp_apply "IH" => //. iIntros "_".
+  wp_pures. by iApply "Hpost".
+Qed.
+
+End ListLemmasEq.
 
 Section DoUntil.
 
