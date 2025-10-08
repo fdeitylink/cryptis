@@ -384,7 +384,7 @@ Definition find_list : val := rec: "loop" "f" "l" :=
 
 Definition mem_list : val :=
   λ: "eq" "v" "l",
-    match: find_list (λ: "m", "eq" "m" "v") "l" with
+    match: find_list (λ: "m", "eq" "v" "m") "l" with
       SOME "r" => #true
     | NONE => #false
     end.
@@ -882,8 +882,52 @@ End ListLemmas.
 Section ListLemmasEq.
 
 Import ssreflect.eqtype.
+Import ssrbool.
+Import seq.
 Variable (A : eqType).
 Context `{!Repr A, !heapGS Σ}.
+
+Lemma find_if_in (v: A) (l : list A):
+  v \in l = match List.find (eq_op v) l with
+              Some _ => true
+            | None => false
+            end.
+Proof.
+  unfold in_mem.
+  induction l.
+  1: reflexivity.
+  simpl.
+  case: (v == a).
+  1: reflexivity.
+  rewrite <- IHl.
+  reflexivity.
+Qed.
+
+Lemma wp_mem_list (eqImpl : heap_lang.val) (v : A) (l : list A) E :
+  (forall x y : A, {{{ True }}}
+    eqImpl (repr x) (repr y) @ E
+  {{{ RET #(eq_op x y); True }}}) ->
+  {{{ True }}}
+    mem_list eqImpl (repr v) (repr l) @ E
+  {{{ RET #(v \in l); True }}}.
+Proof.
+  iIntros "%H".
+  iIntros "%Φ _ Hpost".
+  wp_pures.
+  wp_lam.
+  wp_pures.
+  wp_apply (wp_find_list (eq_op v)).
+  { iIntros "%x %Φ' _ Hpost". wp_pures. iApply H.
+    2: iNext.
+    all: done.
+  }
+  1: done.
+  iIntros "_". wp_pures.
+  rewrite find_if_in.
+  case: (List.find (eq_op v) l).
+  1: intro a.
+  all: wp_pures; iModIntro; by iApply "Hpost".
+Qed.
 
 Lemma wp_rem_list (eqImpl : heap_lang.val) (v : A) (l : list A) E :
   (∀ x y : A, {{{ True }}}
