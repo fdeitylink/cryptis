@@ -1065,6 +1065,22 @@ rewrite path_min_sorted ?sort_le_sorted // all_sort /= le_yx /=.
 apply: order_path_min => //; apply: le_trans.
 Qed.
 
+Lemma twp_inner_insertion_sort (f : val) (l1 l2 : list A) E :
+  is_true (sorted le l2) →
+  (∀ (y z : A),
+    [[{ True }]] f (repr y) (repr z) @ E [[{ RET #(le y z); True }]]) →
+  [[{ True }]]
+    inner_insertion_sort f (repr l1) (repr l2) @ E
+  [[{ RET (repr (sort le (l1 ++ l2))); True }]].
+Proof.
+  intros sorted_l2 wp_f Φ. iIntros "_ Hpost".
+  iSpecialize ("Hpost" with "[//]"). iStopProof.
+  elim: l1 Φ => [| y l1' IH] Φ /=; iIntros "Hpost";
+    wp_rec; rewrite {2}repr_list_unseal; wp_pures.
+    by rewrite sort_le_id.
+  wp_bind (insert_sorted _ _ _); iApply twp_insert_sorted => //. iIntros "_".
+Admitted. (* WIP *)
+
 Lemma twp_leq_list (feq : val) (fle : val) s1 s2 E :
   (∀ x1 x2,
       [[{ True }]]
