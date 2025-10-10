@@ -433,18 +433,14 @@ Definition insert_sorted : val := rec: "loop" "le" "x" "l" :=
     else SOME ("y", "loop" "le" "x" "l")
   end.
 
-Definition inner_insertion_sort : val := rec: "loop" "le" "l1" "l2" :=
-  match: "l1" with
-    NONE => "l2"
+Definition insertion_sort : val := rec: "loop" "le" "l" :=
+  match: "l" with
+    NONE => NONE
   | SOME "l" =>
     let: "y" := Fst "l" in
-    let: "l" := Snd "l" in
-    "loop" "le" "l" (insert_sorted "le" "y" "l2")
+    let: "l'" := Snd "l" in
+    insert_sorted "le" "y" ("loop" "le" "l'")
   end.
-
-Definition insertion_sort : val :=
-  λ: "le" "l",
-    inner_insertion_sort "le" "l" NONE.
 
 Definition leq_list : val := rec: "loop" "eq" "le" "l1" "l2" :=
   match: "l1" with
@@ -1065,20 +1061,19 @@ rewrite path_min_sorted ?sort_le_sorted // all_sort /= le_yx /=.
 apply: order_path_min => //; apply: le_trans.
 Qed.
 
-Lemma twp_inner_insertion_sort (f : val) (l1 l2 : list A) E :
-  is_true (sorted le l2) →
-  (∀ (y z : A),
-    [[{ True }]] f (repr y) (repr z) @ E [[{ RET #(le y z); True }]]) →
+Lemma twp_insertion_sort (f : val) (l : list A) E :
+  (∀ (x y : A),
+    [[{ True }]] f (repr x) (repr y) @ E [[{ RET #(le x y); True }]]) →
   [[{ True }]]
-    inner_insertion_sort f (repr l1) (repr l2) @ E
-  [[{ RET (repr (sort le (l1 ++ l2))); True }]].
+    insertion_sort f (repr l) @ E
+  [[{ RET (repr (sort le l)); True }]].
 Proof.
-  intros sorted_l2 wp_f Φ. iIntros "_ Hpost".
+  rewrite repr_list_unseal => wp_f Φ; iIntros "_ Hpost".
   iSpecialize ("Hpost" with "[//]"). iStopProof.
-  elim: l1 Φ => [| y l1' IH] Φ /=; iIntros "Hpost";
-    wp_rec; rewrite {2}repr_list_unseal; wp_pures.
-    by rewrite sort_le_id.
-  wp_bind (insert_sorted _ _ _); iApply twp_insert_sorted => //. iIntros "_".
+  elim: l Φ => [| y l' IH] Φ; iIntros "Hpost"; wp_rec; wp_pures.
+    iApply "Hpost".
+  wp_apply IH.
+  rewrite -repr_list_unseal; iApply twp_insert_sorted => //; iIntros "_".
 Admitted. (* WIP *)
 
 Lemma twp_leq_list (feq : val) (fle : val) s1 s2 E :
