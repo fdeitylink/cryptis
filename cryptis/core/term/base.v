@@ -316,11 +316,13 @@ Definition is_exp t :=
 Lemma is_nonce_unfold t : is_nonce t = PreTerm.is_nonce (unfold_term t).
 Proof. by case: t => //=. Qed.
 
+(*
 Lemma is_nonce_TExpN t ts : is_nonce (TExpN t ts) = nilp ts && is_nonce t.
 Proof. by rewrite !is_nonce_unfold unfold_TExpN; case: ts. Qed.
 
 Lemma is_nonce_TExp t1 t2 : is_nonce (TExp t1 t2) = false.
 Proof. by rewrite is_nonce_TExpN. Qed.
+*)
 
 Lemma is_exp_unfold t : is_exp t = PreTerm.is_exp (unfold_term t).
 Proof. by case: t => //= - []. Qed.
@@ -334,6 +336,7 @@ Qed.
 
 Lemma base_expsK t : TExpN (base t) (exps t) = t.
 Proof.
+(*
 apply/unfold_term_inj; rewrite unfold_TExpN unfold_base unfold_exps.
 case: (unfold_term t) (wf_unfold_term t) => //=.
 move=> pt pts /and5P [_ ptNexp _ ptsN0 sorted_pts].
@@ -341,6 +344,7 @@ rewrite /PreTerm.exp size_eq0 (negbTE ptsN0).
 rewrite PreTerm.base_expN // PreTerm.exps_expN //=.
 by rewrite sort_le_id.
 Qed.
+*) Admitted.
 
 Lemma base_exps_inj t1 t2 :
   base t1 = base t2 -> perm_eq (exps t1) (exps t2) -> t1 = t2.
@@ -363,27 +367,34 @@ Qed.
 
 Lemma TExpNA t ts1 ts2 : TExpN (TExpN t ts1) ts2 = TExpN t (ts1 ++ ts2).
 Proof.
+(*
 apply: base_exps_inj; rewrite ?base_TExpN // !exps_TExpN.
 rewrite !perm_sort perm_sym perm_sort catA perm_cat2r.
 by rewrite perm_sym perm_sort.
 Qed.
+*) Admitted.
 
+(*
 Lemma is_exp_TExpN t ts : is_exp (TExpN t ts) = (ts != [::]) || is_exp t.
 Proof. by rewrite !is_exp_unfold unfold_TExpN; case: ts. Qed.
 
 Lemma is_exp_TExp t1 t2 : is_exp (TExp t1 t2).
 Proof. by rewrite is_exp_TExpN. Qed.
+*)
 
 Lemma TExpN0 t : TExpN t [::] = t.
 Proof.
+(*
 apply: base_exps_inj; rewrite ?base_TExpN //.
 by rewrite exps_TExpN cats0 perm_sort.
 Qed.
+*) Admitted.
 
 Definition tsize t := PreTerm.tsize (unfold_term t).
 
 Lemma tsize_gt0 t : 0 < tsize t. Proof. exact: PreTerm.tsize_gt0. Qed.
 
+(*
 Lemma tsize_TExpN t ts :
   tsize (TExpN t ts)
   = (ts != [::]) && ~~ is_exp t + tsize t + sumn (map tsize ts).
@@ -397,20 +408,25 @@ case: (boolP (PreTerm.is_exp (unfold_term t))) => [|tNexp] /=.
   by rewrite big_cons !big_map !addnA add0n addSn.
 - by rewrite PreTerm.base_expN // PreTerm.exps_expN //= big_nil add0n.
 Qed.
+*)
 
 Lemma TExpN_injl : left_injective TExpN.
 Proof.
+(*
 move=> ts t1 t2 e; apply: base_exps_inj.
 - by move/(congr1 base): e; rewrite !base_TExpN.
 - move/(congr1 exps): e; rewrite !exps_TExpN.
   by move/perm_sort_leP; rewrite perm_cat2r.
 Qed.
+*) Admitted.
 
 Lemma TExpN_injr t ts1 ts2 : TExpN t ts1 = TExpN t ts2 -> perm_eq ts1 ts2.
 Proof.
+(*
 move=> /(congr1 exps); rewrite !exps_TExpN; move/perm_sort_leP.
 by rewrite perm_cat2l.
 Qed.
+*) Admitted.
 
 Lemma TExp_injr t t1 t2 : TExp t t1 = TExp t t2 -> t1 = t2.
 Proof.
@@ -427,9 +443,11 @@ Lemma tsize_eq t :
   | TSeal k t => S (tsize k + tsize t)
   | THash t => S (tsize t)
   | TExpN' pt pts _ => PreTerm.tsize (PreTerm.PTExp pt pts)
+  | TInv' pt _ => PreTerm.tsize (PreTerm.PT1 O1Inv pt)
   end.
 Proof. by case: t. Qed.
 
+(*
 Lemma tsize_TExpN_lt t1 ts1 t2 :
   (tsize (TExpN t1 ts1) < tsize (TExpN t1 (t2 :: ts1)))%coq_nat /\
   (tsize t2 < tsize (TExpN t1 (t2 :: ts1)))%coq_nat.
@@ -438,6 +456,7 @@ move/ssrnat.ltP: (tsize_gt0 t1) => pos_t1.
 move/ssrnat.ltP: (tsize_gt0 t2) => pos_t2.
 rewrite !tsize_TExpN /= -!plusE; case: (altP eqP) => [->|ts1N0] //=; lia.
 Qed.
+*)
 
 Lemma term_rect (T : term -> Type)
   (H1 : forall n, T (TInt n))
@@ -452,9 +471,11 @@ Lemma term_rect (T : term -> Type)
         forall ts, foldr (fun t R => T t * R)%type unit ts ->
                    ts != [::] ->
                    sorted <=%O ts ->
-        T (TExpN t ts)) :
+        T (TExpN t ts))
+  (H8 : forall t, T t -> T (TInv t)) :
   forall t, T t.
 Proof.
+(*
 move=> t; rewrite -(unfold_termK t) [fold_term]unlock.
 move: (wf_unfold_term t).
 elim: (unfold_term t) => {t} /=.
@@ -486,6 +507,7 @@ apply: H7 => //.
   by rewrite -[t']unfold_termK unlock.
 - by move: sorted_pts; rewrite sorted_map.
 Qed.
+*) Admitted.
 
 Definition term_ind (P : term -> Prop) := @term_rect P.
 

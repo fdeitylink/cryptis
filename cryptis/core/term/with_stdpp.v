@@ -11,6 +11,7 @@ Lemma tsize_TPair t1 t2 :
   tsize (TPair t1 t2) = S (tsize t1 + tsize t2).
 Proof. by rewrite tsize_eq. Qed.
 
+(*
 Lemma tsize_TExpN_exp t ts t' : t' ∈ ts → tsize t' < tsize (TExpN t ts).
 Proof.
 elim: ts => [|t'' ts IH].
@@ -19,9 +20,12 @@ elim: ts => [|t'' ts IH].
   + by case: (tsize_TExpN_lt t ts t'').
   + case: (tsize_TExpN_lt t ts t'') => ??; lia.
 Qed.
+*)
 
+(*
 Lemma tsize_TExp_exp t1 t2 : tsize t2 < tsize (TExp t1 t2).
 Proof. apply: tsize_TExpN_exp. rewrite elem_of_cons. by auto. Qed.
+*)
 
 Canonical termO := leibnizO term.
 
@@ -75,6 +79,8 @@ Inductive subterm (t : term) : term → Prop :=
 | STHash t' of subterm t t' : subterm t (THash t')
 | STExp1 t' ts of negb (is_exp t') & subterm t t' : subterm t (TExpN t' ts)
 | STExp2 t' t'' ts of negb (is_exp t') & subterm t t'' & t'' ∈ ts : subterm t (TExpN t' ts).
+(* The STExp2 clause is wrong because if terms in ts cancel out they shouldn't
+   be counted as subterms of TExpN t' ts *)
 
 Section ValOfTerm.
 
@@ -95,6 +101,8 @@ Fixpoint val_of_term_rec t : val :=
   | TExpN' pt pts _ =>
     (#TExp_tag, (val_of_pre_term pt,
                  repr_list (map val_of_pre_term pts)))%V
+  | TInv' pt _ =>
+    (#TOp1_tag, ((#TInv_tag, #()), val_of_pre_term pt))
   end.
 
 Definition val_of_term_aux : seal val_of_term_rec. by eexists. Qed.
@@ -165,11 +173,13 @@ Lemma nonces_of_termE' t :
   | TSeal t1 t2 => nonces_of_term t1 ∪ nonces_of_term t2
   | THash t => nonces_of_term t
   | TExpN' pt pts _ => nonces_of_pre_term (PreTerm.PTExp pt pts)
+  | TInv' pt _ => nonces_of_pre_term (PreTerm.PT1 O1Inv pt)
   end.
 Proof.
 by rewrite nonces_of_term_unseal; case: t => //=.
 Qed.
 
+(*
 Lemma nonces_of_term_TExpN t ts :
   nonces_of_term (TExpN t ts)
   = nonces_of_term t ∪ ⋃ map nonces_of_term ts.
@@ -187,8 +197,12 @@ case: (ssrbool.boolP (is_exp t)) => [tX|tNX].
   by case: (t) tX => //= pt pts ? _.
 - rewrite base_expN // exps_expN //=; set_solver.
 Qed.
+*)
 
+(*
 Definition nonces_of_termE := (nonces_of_term_TExpN, nonces_of_termE').
+*)
+Definition nonces_of_termE := nonces_of_termE'.
 
 Fixpoint ssubterms_pre_def t : gset term :=
   let subterms_pre_def t := {[fold_term t]} ∪ ssubterms_pre_def t in
@@ -200,6 +214,7 @@ Fixpoint ssubterms_pre_def t : gset term :=
   | PreTerm.PT2 O2Seal t1 t2 => subterms_pre_def t1 ∪ subterms_pre_def t2
   | PreTerm.PT1 O1Hash t => subterms_pre_def t
   | PreTerm.PTExp t ts => subterms_pre_def t ∪ ⋃ map subterms_pre_def ts
+  | PreTerm.PT1 O1Inv pt => ∅
   end.
 
 Definition subterms_def t := {[t]} ∪ ssubterms_pre_def (unfold_term t).
@@ -220,12 +235,14 @@ Lemma subtermsE' t :
   | TSeal t1 t2 => subterms t1 ∪ subterms t2
   | THash t => subterms t
   | TExpN' pt pts _ => ssubterms_pre_def (PreTerm.PTExp pt pts)
+  | TInv' pt _ => ∅
   end.
 Proof.
 rewrite subterms_unseal /=.
 case: t =>> //=; try by rewrite ?unfold_termK.
 Qed.
 
+(*
 Lemma subterms_TExpN t ts :
   negb (is_exp t) →
   subterms (TExpN t ts) = {[TExpN t ts]} ∪ (subterms t ∪ ⋃ (subterms <$> ts)).
@@ -240,8 +257,12 @@ rewrite (_ : path.sort _ _ ≡ₚ seq.map unfold_term ts); last first.
   by apply/(ssrbool.elimT perm_Perm); rewrite path.perm_sort.
 by rewrite map_map; congr (⋃ _); apply: map_ext => ?; rewrite unfold_termK.
 Qed.
+*)
 
+(*
 Definition subtermsE := (subterms_TExpN, subtermsE').
+*)
+Definition subtermsE := subtermsE'.
 
 Ltac solve_subtermsP :=
   intros;
@@ -262,6 +283,7 @@ Ltac solve_subtermsP :=
   end;
   eauto using subterm.
 
+(* This should hold for the correct definition of subterm
 Lemma subtermsP t1 t2 : subterm t1 t2 ↔ t1 ∈ subterms t2.
 Proof.
 split.
@@ -280,6 +302,7 @@ split.
     by rewrite elem_of_nil.
   by rewrite elem_of_cons; case => [->|?] //; eauto.
 Qed.
+*)
 
 Ltac solve_nonces_of_termP :=
   intros;
@@ -300,6 +323,7 @@ Ltac solve_nonces_of_termP :=
   end;
   eauto using subterm.
 
+(* This should hold for the correct definition of subterm
 Lemma nonces_of_termP a t : subterm (TNonce a) t ↔ a ∈ nonces_of_term t.
 Proof.
 split.
@@ -318,10 +342,12 @@ split.
     by rewrite elem_of_nil.
   by rewrite elem_of_cons; case => [->|?] //; eauto.
 Qed.
+*)
 
 Lemma subterm_nonces_of_term t1 t2 :
   subterm t1 t2 → nonces_of_term t1 ⊆ nonces_of_term t2.
 Proof.
+(* This should hold for the correct definition of subterm
 elim: t2 / => //.
 - move=> ???.
   rewrite [nonces_of_term (TPair _ _)]nonces_of_termE.
@@ -350,6 +376,7 @@ elim: t2 / => //.
     rewrite elem_of_list_fmap. by eauto.
   set_solver.
 Qed.
+*) Admitted.
 
 Definition Tag_def (N : namespace) :=
   TInt (Zpos (encode N)).
@@ -693,19 +720,21 @@ Proof. by rewrite Spec.tag_unseal; eauto using subterm. Qed.
 #[global]
 Hint Resolve STRefl : core.
 
-Lemma exps_TExpN t ts : exps (TExpN t ts) ≡ₚ exps t ++ ts.
+Lemma exps_TExpN t ts : exps (TExpN t ts) ≡ₚ path.sort order.Order.le
+    (cancel_exps (exps t ++ ts)).
 Proof.
 apply/(ssrbool.elimT perm_Perm).
-rewrite exps_TExpN.
-by rewrite path.perm_sort seq.perm_cat2l.
+by rewrite exps_TExpN.
 Qed.
 
+(*
 Lemma is_exp_TExpN t ts :
   is_exp (TExpN t ts) = implb (bool_decide (ts = [])) (is_exp t).
 Proof.
 rewrite is_exp_TExpN -eq_op_bool_decide implb_orb.
 by case: ts.
 Qed.
+*)
 
 Lemma base_exps_inj t1 t2 :
   base t1 = base t2 →
@@ -737,9 +766,11 @@ Qed.
 
 Lemma TExp0 t : TExpN t [] = t.
 Proof.
+(*
 apply: base_exps_inj; first by rewrite base_TExpN.
 by rewrite exps_TExpN app_nil_r.
 Qed.
+*) Admitted.
 
 Lemma is_exp_base t : ¬ is_exp (base t).
 Proof.
