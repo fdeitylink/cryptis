@@ -1074,7 +1074,10 @@ Proof.
     iApply "Hpost".
   wp_apply IH.
   rewrite -repr_list_unseal; iApply twp_insert_sorted => //; iIntros "_".
-Admitted. (* WIP *)
+  suff ->: sort <=%O (y :: sort <=%O l') = sort <=%O (y :: l') by [].
+  apply /perm_sort_leP. rewrite perm_cons.
+  apply /permPl /perm_sort.
+Qed.
 
 Lemma twp_leq_list (feq : val) (fle : val) s1 s2 E :
   (∀ x1 x2,
