@@ -411,6 +411,33 @@ Definition filter_list : val := rec: "loop" "f" "l" :=
   | NONE => NONE
   end.
 
+Definition append_lists : val := rec: "loop" "l1" "l2" :=
+    match: "l1" with
+        SOME "p" =>
+            let: "head" := Fst "p" in
+            let: "tail" := Snd "p" in
+            SOME ("head", "loop" "tail" "l2")
+      | NONE => "l2"
+    end.
+
+Definition map_list : val := rec: "loop" "f" "l" :=
+    match: "l" with
+        SOME "p" =>
+            let: "h" := Fst "p" in
+            let: "l'" := Snd "p" in
+            SOME ("f" "h", "loop" "f" "l'") |
+        NONE => []
+    end.
+
+Definition foldr_list : val := rec: "loop" "f" "seed" "l" :=
+    match: "l" with
+        SOME "p" =>
+            let: "head" := Fst "p" in
+            let: "tail" := Snd "p" in
+            "f" "head" ("loop" "f" "seed" "tail")
+        | NONE => "seed"
+    end.
+
 Fixpoint list_match_aux (vars : list string) (l : expr) (k : expr) : expr :=
   match vars with
   | [] =>
@@ -686,7 +713,7 @@ Qed.
 
 Section ListLemmas.
 
-Context `{!Repr A, !heapGS Σ}.
+Context `{!Repr A, !Repr B, !heapGS Σ}.
 
 Implicit Types (x : A) (xs : list A).
 
@@ -859,6 +886,18 @@ case: (f h) => //; wp_pures; first by iApply "Hpost".
 by iApply "IH".
 Qed.
 
+Lemma twp_find_list (f : A → bool) (fimpl : val) (l : list A) E :
+    (∀ x : A, [[{ True }]] fimpl (repr x) @ E [[{ RET #(f x); True }]]) →
+    [[{ True }]] find_list fimpl (repr l) @ E [[{ RET repr (find f l); True }]].
+Proof.
+    rewrite repr_list_unseal => twp_f Φ; iIntros "_ HΦ".
+    iStopProof. elim: l Φ => [| h l' IH] Φ /=; iIntros "HΦ";
+        wp_rec; wp_pures; first by iApply "HΦ".
+    wp_apply twp_f => //; iIntros "_".
+    case (f h); wp_pures; first by iApply "HΦ".
+    by iApply IH.
+Qed.
+
 Lemma wp_filter_list (f : A → bool) (fimpl : val) (l : list A) E :
   (∀ x : A, {{{ True }}} fimpl (repr x) @ E {{{ RET #(f x); True }}}) →
   {{{ True }}}
@@ -871,6 +910,50 @@ case: l => [|x l] /=; wp_pures; first by iApply "Hpost".
 wp_bind (filter_list _ _). iApply "IH" => //. iIntros "!> _".
 wp_pures. wp_bind (fimpl _); iApply fP => //; iIntros "!> _".
 case f_x: (f x); wp_pures; by iApply "Hpost".
+Qed.
+
+Lemma twp_append_lists E (l1 l2 : list A) :
+  [[{ True }]]
+    append_lists (repr l1) (repr l2) @ E
+  [[{ RET repr (l1 ++ l2); True }]].
+Proof.
+    rewrite repr_list_unseal => Φ; iIntros "_ post".
+    iSpecialize ("post" with "[//]"); iStopProof.
+    elim: l1 Φ => /= [| h l1' IH] Φ; iIntros "post";
+        wp_rec; wp_pures; first done.
+    wp_apply IH. by wp_pures.
+Qed.
+
+Lemma twp_map_list (f : A -> B) (fimpl : val) xs E :
+    Forall (λ y, [[{ True }]]
+        fimpl (repr y) @ E [[{ RET repr (f y); True }]]) xs →
+    [[{ True }]] map_list fimpl (repr xs) @ E [[{ RET repr (map f xs); True }]].
+Proof.
+    rewrite !repr_list_unseal /=.
+    iIntros "%twp_fimpl_all %Φ _ HΦ"; iStopProof.
+    elim: xs twp_fimpl_all Φ => [| h xs' IH] twp_fimpl_all Φ /=; iIntros "HΦ";
+        wp_rec; wp_pures;
+        first by iApply "HΦ".
+    inversion twp_fimpl_all as [| ? ? twp_fimpl twp_fimpl_rest]; subst.
+    wp_apply IH => //; iIntros "_".
+    wp_apply twp_fimpl => //; iIntros "_".
+    wp_pures. by iApply "HΦ".
+Qed.
+
+Lemma twp_foldr_list (f : B -> A -> A) (fimpl : val) (l : list B) x E :
+    (∀ (b : B) (a : A), [[{ True}]]
+        fimpl (repr b) (repr a) @ E
+    [[{ RET (repr (f b a)); True }]]) →
+    [[{ True }]]
+        foldr_list fimpl (repr x) (repr l) @ E
+    [[{ RET repr (foldr f x l); True }]].
+Proof.
+    rewrite repr_list_unseal /=; iIntros "%twp_f %Φ _ HΦ".
+    iSpecialize ("HΦ" with "[//]"); iStopProof.
+    elim: l Φ => [| h l' IH] Φ /=; iIntros "HΦ";
+        wp_rec; wp_pures; first done.
+    wp_apply IH. wp_apply twp_f; first done; iIntros "_".
+    iApply "HΦ".
 Qed.
 
 End ListLemmas.
@@ -925,6 +1008,23 @@ Proof.
   all: wp_pures; iModIntro; by iApply "Hpost".
 Qed.
 
+Lemma twp_mem_list (eqImpl : heap_lang.val) (v : A) (l : list A) E :
+    (∀ x y : A, [[{ True }]]
+        eqImpl (repr x) (repr y) @ E
+    [[{ RET #(eq_op x y); True }]]) →
+    [[{ True }]]
+        mem_list eqImpl (repr v) (repr l) @ E
+    [[{ RET #(v \in l); True }]].
+Proof.
+    iIntros "%twp_eqImpl %Φ _ HΦ".
+    wp_lam; wp_pures.
+    wp_apply twp_find_list => //.
+        iIntros "%x %Ψ _ HΨ". wp_pures. wp_apply twp_eqImpl => //.
+        iIntros "_".
+    rewrite find_if_in.
+    case (List.find (eq_op v) l) => *; wp_pures; by iApply "HΦ".
+Qed.
+
 Lemma wp_rem_list (eqImpl : heap_lang.val) (v : A) (l : list A) E :
   (∀ x y : A, {{{ True }}}
     eqImpl (repr x) (repr y) @ E
@@ -941,6 +1041,24 @@ Proof.
   case: (x == v); wp_pures; first by iApply "Hpost".
   wp_apply "IH" => //. iIntros "_".
   wp_pures. by iApply "Hpost".
+Qed.
+
+Lemma twp_rem_list (eqImpl : heap_lang.val) (v : A) (l : list A) E :
+    (∀ x y : A, [[{ True }]]
+        eqImpl (repr x) (repr y) @ E
+    [[{ RET #(eq_op x y); True }]]) →
+    [[{ True }]]
+        rem_list eqImpl (repr v) (repr l) @ E
+    [[{ RET repr (seq.rem v l); True }]].
+Proof.
+    rewrite repr_list_unseal /=.
+    iIntros "%twp_eqImpl %Φ _ HΦ".
+    iStopProof; elim: l Φ => [| h l' IH] Φ /=; iIntros "HΦ"; wp_rec; wp_pures;
+        first by iApply "HΦ".
+    wp_apply twp_eqImpl => //; iIntros "_".
+    case: (h == v) => /=; wp_pures; first by iApply "HΦ".
+    wp_apply IH; iIntros "_".
+    wp_pures. by iApply "HΦ".
 Qed.
 
 End ListLemmasEq.
