@@ -140,6 +140,9 @@ Definition hl_exp : val := λ: "pt" "pts",
     if: "normed" = [] then hl_base "pt"
     else (#TExp_tag, (hl_base "pt", "normed")).
 
+Definition texp : val := λ: "base" "exp",
+    hl_exp "base" ["exp"].
+
 Section Proofs.
 
 Context `{!heapGS Σ}.
