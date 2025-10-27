@@ -108,6 +108,9 @@ Definition fold_term_def pt := fold_term_predef (PreTerm.normalize pt).
 Lemma wf_unfold_term t : PreTerm.wf_term (unfold_term t).
 Proof. by elim/term_ind': t=> //= ? -> ? ->. Qed.
 
+Lemma wf_unfold_terms ts : all PreTerm.wf_term [seq unfold_term i | i <- ts].
+Proof. elim: ts => //= ? ? ->. by rewrite wf_unfold_term.  Qed.
+
 Fact fold_term_key : unit. Proof. exact: tt. Qed.
 Definition fold_term :=
   locked_with fold_term_key fold_term_def.
@@ -171,7 +174,7 @@ Fact TExpN_key : unit. Proof. exact: tt. Qed.
 Definition TExpN :=
   locked_with TExpN_key (
     fun t ts =>
-      fold_term (PreTerm.PTExp (unfold_term t) (map unfold_term ts))
+      fold_term (PreTerm.exp (unfold_term t) (map unfold_term ts))
   ).
 Canonical TExpN_unlock := [unlockable of TExpN].
 
@@ -226,7 +229,10 @@ Lemma unfold_TExpN t ts :
   unfold_term (TExpN t ts)
   = PreTerm.exp (unfold_term t) (map unfold_term ts).
 Proof.
-by rewrite unlock unfold_fold /= normalize_unfold1 normalize_unfoldn.
+    rewrite unlock unfold_fold PreTerm.normalize_wf => //.
+    rewrite PreTerm.wf_exp => //.
+    apply wf_unfold_term.
+    apply wf_unfold_terms.
 Qed.
 
 Lemma fold_termE pt :
