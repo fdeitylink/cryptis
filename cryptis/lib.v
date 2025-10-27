@@ -912,14 +912,12 @@ wp_pures. wp_bind (fimpl _); iApply fP => //; iIntros "!> _".
 case f_x: (f x); wp_pures; by iApply "Hpost".
 Qed.
 
-Lemma twp_append_lists E (l1 l2 : list A) :
-  [[{ True }]]
-    append_lists (repr l1) (repr l2) @ E
-  [[{ RET repr (l1 ++ l2); True }]].
+Lemma twp_append_lists E (l1 l2 : list A) Ψ :
+  Ψ (repr (l1 ++ l2)) ⊢
+  WP append_lists (repr l1) (repr l2) @ E [{ Ψ }].
 Proof.
-    rewrite repr_list_unseal => Φ; iIntros "_ post".
-    iSpecialize ("post" with "[//]"); iStopProof.
-    elim: l1 Φ => /= [| h l1' IH] Φ; iIntros "post";
+    rewrite repr_list_unseal.
+    elim: l1 Ψ => /= [| h l1' IH] Ψ; iIntros "HΨ";
         wp_rec; wp_pures; first done.
     wp_apply IH. by wp_pures.
 Qed.

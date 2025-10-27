@@ -58,7 +58,7 @@ Proof.
     rewrite -!val_of_pre_term_unfold unfold_TExpN => /=.
     wp_lam; wp_pures.
     wp_apply twp_nil; wp_apply twp_cons.
-    wp_apply twp_hl_exp => //=; iIntros "_".
+    wp_apply twp_hl_exp.
     iApply "HΨ".
 Qed.
 

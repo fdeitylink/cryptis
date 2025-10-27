@@ -314,11 +314,10 @@ iIntros "post"; wp_rec; wp_pures; try by iApply "post".
   + by iIntros "_".
 Qed.
 
-Lemma twp_hl_base E (pt : PreTerm.pre_term) :
-    [[{ True }]] hl_base (repr pt) @ E [[{ RET repr (PreTerm.base pt); True }]].
-Proof.
-    case: pt => * /=; iIntros "_ HΦ"; wp_lam; wp_pures; by iApply "HΦ".
-Qed.
+Lemma twp_hl_base E (pt : PreTerm.pre_term) Ψ:
+    Ψ (repr (PreTerm.base pt)) ⊢
+    WP hl_base (repr pt) @ E [{ Ψ }].
+Proof. case: pt => * /=; iIntros "HΨ"; wp_lam; wp_pures; iApply "HΨ". Qed.
 
 (* TODO: Is this already proved somewhere else? *)
 Lemma repr_pre_term_list (pts : seq PreTerm.pre_term) :
@@ -334,67 +333,69 @@ Proof.
     simpl in H. rewrite -H. reflexivity.
 Qed.
 
-Lemma twp_hl_exps E (pt : PreTerm.pre_term) :
-    [[{ True }]] hl_exps (repr pt) @ E [[{ RET repr (PreTerm.exps pt); True }]].
+Lemma twp_hl_exps E (pt : PreTerm.pre_term) Ψ :
+    Ψ (repr (PreTerm.exps pt)) ⊢
+    WP hl_exps (repr pt) @ E [{ Ψ }].
 Proof.
-    case: pt => * /=; iIntros "_ HΦ"; wp_lam; wp_pures;
-        rewrite ?repr_pre_term_list repr_list_unseal; by iApply "HΦ".
+    case: pt => * /=; iIntros "HΨ"; wp_lam; wp_pures;
+        rewrite ?repr_pre_term_list repr_list_unseal; iApply "HΨ".
 Qed.
 
-Lemma twp_hl_inv E (pt : PreTerm.pre_term) :
-    [[{ True }]] hl_inv (repr pt) @ E [[{ RET repr (PreTerm.inv pt); True }]].
+Lemma twp_hl_inv E (pt : PreTerm.pre_term) Ψ :
+    Ψ (repr (PreTerm.inv pt)) ⊢
+    WP hl_inv (repr pt) @ E [{ Ψ }].
 Proof.
-    case: pt => [*|t *|*|*] /=; iIntros "_ HΦ";
-        try case: t => * /=; wp_lam; wp_pures; by iApply "HΦ".
+    case: pt => [*|t *|*|*] /=; iIntros "HΨ";
+        try case: t => * /=; wp_lam; wp_pures; iApply "HΨ".
 Qed.
 
 (* TODO: Is this already proved somewhere else? *)
 Lemma eq_equiv x y : bool_decide (x = y) = (x == y).
 Proof. Admitted.
 
-Lemma twp_hl_insert_exp E (pt : PreTerm.pre_term) (pts : seq PreTerm.pre_term) :
-    [[{ True }]]
-        hl_insert_exp (repr pt) (repr pts) @ E
-    [[{ RET repr (PreTerm.insert_exp pt pts); True }]].
+Lemma twp_hl_insert_exp E pt (pts : seq PreTerm.pre_term) Φ :
+    Φ (repr (PreTerm.insert_exp pt pts)) ⊢
+    WP hl_insert_exp (repr pt) (repr pts) @ E [{ Φ }].
 Proof.
-    iIntros "%Φ _ HΦ".
+    iIntros "HΦ".
     rewrite /PreTerm.insert_exp.
     wp_lam; wp_pures.
-    wp_apply twp_hl_inv => //; iIntros "_".
+    wp_apply twp_hl_inv.
     wp_apply twp_mem_list => //.
         iIntros "%x %y %Ψ _ HΨ". wp_apply twp_eq_pre_term.
         rewrite eq_equiv. by iApply "HΨ".
         iIntros "_".
     case: (PreTerm.inv pt \in pts); wp_pures.
-        - wp_apply twp_hl_inv => //; iIntros "_".
+        - wp_apply twp_hl_inv.
           wp_apply twp_rem_list => //.
           iIntros "%x %y %Ψ _ HΨ". wp_apply twp_eq_pre_term.
           rewrite eq_equiv. by iApply "HΨ".
-        - wp_apply twp_cons. by iApply "HΦ".
+          iIntros "_". iApply "HΦ".
+        - wp_apply twp_cons. iApply "HΦ".
 Qed.
 
-Lemma twp_hl_cancel_exps E (pts : seq PreTerm.pre_term):
-    [[{ True }]]
-        hl_cancel_exps (repr pts) @ E
-    [[{ RET (repr (PreTerm.cancel_exps pts)); True }]].
+Lemma twp_hl_cancel_exps E (pts : seq PreTerm.pre_term) Φ :
+    Φ (repr (PreTerm.cancel_exps pts)) ⊢
+    WP hl_cancel_exps (repr pts) @ E [{ Φ }].
 Proof.
-    iIntros "%Φ _ HΦ"; wp_lam; wp_pures.
+    iIntros "HΦ"; wp_lam; wp_pures.
     wp_apply twp_nil.
     wp_apply twp_foldr_list => //.
     iIntros "%a %b %Ψ _ HΨ".
-    wp_apply twp_hl_insert_exp => //.
+        wp_apply twp_hl_insert_exp.
+        by iApply "HΨ".
+    iIntros "_". iApply "HΦ".
 Qed.
 
-Lemma twp_hl_exp E (pt : PreTerm.pre_term) (pts : seq PreTerm.pre_term) :
-    [[{ True }]]
-        hl_exp (repr pt) (repr pts) @ E
-    [[{ RET repr (PreTerm.exp pt pts); True }]].
+Lemma twp_hl_exp E (pt : PreTerm.pre_term) (pts : seq PreTerm.pre_term) Φ :
+    Φ (repr (PreTerm.exp pt pts)) ⊢
+    WP hl_exp (repr pt) (repr pts) @ E [{ Φ }].
 Proof.
-    iIntros "%Φ _ HΦ"; wp_lam.
+    iIntros "HΦ"; wp_lam.
     wp_pures.
-    wp_apply twp_hl_exps; first done; iIntros "_".
-    wp_apply twp_append_lists; first done; iIntros "_".
-    wp_apply twp_hl_cancel_exps; first done; iIntros "_".
+    wp_apply twp_hl_exps.
+    wp_apply twp_append_lists.
+    wp_apply twp_hl_cancel_exps.
     simpl; wp_apply twp_insertion_sort.
         iIntros "%x %y %Ψ _ HΨ". iApply twp_leq_pre_term. by iApply "HΨ".
         done. iIntros "_".
@@ -402,10 +403,11 @@ Proof.
     rewrite /PreTerm.exp.
     set normed := (sort <=%O (PreTerm.cancel_exps (PreTerm.exps pt ++ pts)%list)).
     destruct (decide (size normed = 0)) as [H | H].
-        rewrite H. iSimpl in "HΦ".
+        rewrite H.
         rewrite (size0nil H); rewrite repr_list_unseal; simpl.
         wp_pures.
-        by wp_apply twp_hl_base.
+        wp_apply twp_hl_base => /=.
+        iApply "HΦ".
     assert ((@eq_op
         ssrnat.Datatypes_nat__canonical__eqtype_Equality (* Why *)
         (size normed) 0) = false) as -> by by destruct normed.
@@ -413,10 +415,10 @@ Proof.
         by (destruct normed; by rewrite repr_list_unseal);
         rewrite Hhl; clear Hhl. (* This works, but `as ->` doesn't *)
     wp_pures.
-    wp_apply twp_hl_base => //; iIntros "_".
+    wp_apply twp_hl_base.
     wp_pures.
     iSimpl in "HΦ". rewrite repr_pre_term_list.
-    by iApply "HΦ".
+    iApply "HΦ".
 Qed.
 
 End Proofs.
