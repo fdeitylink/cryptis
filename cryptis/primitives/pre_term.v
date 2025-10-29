@@ -349,10 +349,6 @@ Proof.
         try case: t => * /=; wp_lam; wp_pures; iApply "HΨ".
 Qed.
 
-(* TODO: Is this already proved somewhere else? *)
-Lemma eq_equiv x y : bool_decide (x = y) = (x == y).
-Proof. Admitted.
-
 Lemma twp_hl_insert_exp E pt (pts : seq PreTerm.pre_term) Φ :
     Φ (repr (PreTerm.insert_exp pt pts)) ⊢
     WP hl_insert_exp (repr pt) (repr pts) @ E [{ Φ }].
@@ -363,13 +359,13 @@ Proof.
     wp_apply twp_hl_inv.
     wp_apply twp_mem_list => //.
         iIntros "%x %y %Ψ _ HΨ". wp_apply twp_eq_pre_term.
-        rewrite eq_equiv. by iApply "HΨ".
+        rewrite eq_op_bool_decide. by iApply "HΨ".
         iIntros "_".
     case: (PreTerm.inv pt \in pts); wp_pures.
         - wp_apply twp_hl_inv.
           wp_apply twp_rem_list => //.
           iIntros "%x %y %Ψ _ HΨ". wp_apply twp_eq_pre_term.
-          rewrite eq_equiv. by iApply "HΨ".
+          rewrite eq_op_bool_decide. by iApply "HΨ".
           iIntros "_". iApply "HΦ".
         - wp_apply twp_cons. iApply "HΦ".
 Qed.
