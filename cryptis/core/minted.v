@@ -65,19 +65,24 @@ Qed.
 Lemma minted_THash t : minted (THash t) ⊣⊢ minted t.
 Proof. by rewrite unlock nonces_of_term_unseal /=. Qed.
 
+(* TODO: no longer true: revise statement *)
 Lemma minted_TExpN t ts :
   minted (TExpN t ts) ⊣⊢ minted t ∧ [∗ list] t' ∈ ts, minted t'.
 Proof.
-rewrite unlock nonces_of_term_TExpN big_sepS_union_pers.
-by rewrite big_sepS_union_list_pers big_sepL_fmap.
-Qed.
+(* rewrite unlock nonces_of_term_TExpN big_sepS_union_pers. *)
+(* by rewrite big_sepS_union_list_pers big_sepL_fmap. *)
+(* Qed. *)
+Admitted.
 
+(* TODO: this should be true: prove *)
 Lemma minted_TExp t1 t2 :
+  ~ is_exp t1 ->
   minted (TExp t1 t2) ⊣⊢ minted t1 ∧ minted t2.
 Proof.
-rewrite unlock nonces_of_term_TExpN big_sepS_union_pers.
-by rewrite /= union_empty_r_L.
-Qed.
+(* rewrite unlock nonces_of_term_TExpN big_sepS_union_pers. *)
+(* by rewrite /= union_empty_r_L. *)
+(* Qed. *)
+Admitted.
 
 Lemma minted_nonces_of_term t :
   minted t ⊣⊢ [∗ set] a ∈ nonces_of_term t, minted (TNonce a).

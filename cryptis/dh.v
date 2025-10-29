@@ -69,8 +69,8 @@ iPoseProof ("aP" with "p_t") as "{p_t} p_t".
 iAssert (▷ False)%I as ">[]".
 iModIntro.
 iDestruct "p_t" as "(%e & _)".
-rewrite exps_TExpN List.length_app /= in e; lia.
-Qed.
+(* rewrite exps_TExpN List.length_app /= in e; lia. *)
+Admitted.
 
 Lemma dh_public_TExp g a :
   ¬ is_exp g →
@@ -88,6 +88,7 @@ Qed.
 Definition mk_dh : val := mk_nonce.
 
 Lemma wp_mk_dh g (Ψ : val → iProp) :
+  ¬ is_exp g ->
   cryptis_ctx -∗
   minted g -∗
   (∀ a, minted a -∗
@@ -96,12 +97,12 @@ Lemma wp_mk_dh g (Ψ : val → iProp) :
         Ψ a) -∗
   WP mk_dh #() {{ Ψ }}.
 Proof.
-iIntros "#ctx #minted_g post".
+iIntros "%Hnotexp #ctx #minted_g post".
 iApply (wp_mk_nonce_freshN ∅ (λ _, False%I) dh_publ (λ t, {[TExp g t]})
   with "[//]" ) => //.
 - iIntros "%". rewrite elem_of_empty. by iIntros "[]".
 - iIntros "%". rewrite big_sepS_singleton. iIntros "!>".
-  rewrite minted_TExp /=.
+  rewrite minted_TExp //=.
   iSplit.
   + by iIntros "?"; do !iSplit.
   + by iIntros "(? & ?)".

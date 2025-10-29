@@ -280,23 +280,24 @@ Inductive decompose (T : gset term) (t : term) : Prop :=
 
 Lemma decompose_tsize T t t' : decompose T t → t' ∈ T → tsize t' < tsize t.
 Proof.
-case.
-- by move=> n -> -> //.
-- move=> t1 t2 -> ->.
-  case/elem_of_union => /elem_of_singleton ->;
-  rewrite [tsize (TPair _ _)]tsize_eq -ssrnat.plusE; lia.
-- move=> kt ? -> -> /elem_of_singleton ->.
-  rewrite [tsize (TKey _ _)]tsize_eq; lia.
-- move=> ?? -> -> /elem_of_union [] /elem_of_singleton ->;
-  rewrite ?[tsize (TKey _ _)]tsize_eq [tsize (TSeal _ _)]tsize_eq
-    -ssrnat.plusE; lia.
-- move=> ? -> -> /elem_of_singleton ->; rewrite [tsize (THash _)]tsize_eq; lia.
-- move=> t1 t2 -> _ ->.
-  rewrite tsize_TExpN /= -ssrnat.plusE /=.
-  move/(ssrbool.elimT ssrnat.leP): (tsize_gt0 t1) => ?.
-  move/(ssrbool.elimT ssrnat.leP): (tsize_gt0 t2) => ?.
-  by move=> /elem_of_union [] /elem_of_singleton ->; lia.
-Qed.
+(* case. *)
+(* - by move=> n -> -> //. *)
+(* - move=> t1 t2 -> ->. *)
+(*   case/elem_of_union => /elem_of_singleton ->; *)
+(*   rewrite [tsize (TPair _ _)]tsize_eq -ssrnat.plusE; lia. *)
+(* - move=> kt ? -> -> /elem_of_singleton ->. *)
+(*   rewrite [tsize (TKey _ _)]tsize_eq; lia. *)
+(* - move=> ?? -> -> /elem_of_union [] /elem_of_singleton ->; *)
+(*   rewrite ?[tsize (TKey _ _)]tsize_eq [tsize (TSeal _ _)]tsize_eq *)
+(*     -ssrnat.plusE; lia. *)
+(* - move=> ? -> -> /elem_of_singleton ->; rewrite [tsize (THash _)]tsize_eq; lia. *)
+(* - move=> t1 t2 -> _ ->. *)
+(*   rewrite tsize_TExpN /= -ssrnat.plusE /=. *)
+(*   move/(ssrbool.elimT ssrnat.leP): (tsize_gt0 t1) => ?. *)
+(*   move/(ssrbool.elimT ssrnat.leP): (tsize_gt0 t2) => ?. *)
+(*   by move=> /elem_of_union [] /elem_of_singleton ->; lia. *)
+(* Qed. *)
+Admitted.
 
 Fixpoint public_aux n t : iProp :=
   if n is S n then
@@ -549,50 +550,51 @@ Lemma public_TExpN t ts :
   (∃ t' ts', ⌜ts ≡ₚ t' :: ts'⌝ ∧ public (TExpN t ts') ∧ public t') ∨
   minted (TExpN t ts) ∧ [∗ list] t' ∈ ts, dh_pred t' (TExpN t ts).
 Proof.
-move=> tNX tsN0.
-have ttsX : is_exp (TExpN t ts).
-  by rewrite is_exp_TExpN; case: (ts) tsN0.
-have [? [] ? [] H etts] : ∃ t' ts' H, TExpN t ts = TExpN' t' ts' H.
-  case: (TExpN t ts) ttsX => //=; eauto.
-apply: (anti_symm _).
-- rewrite public_eq minted_TExpN {2}etts {H etts}.
-  iDestruct 1 as "[# [Ht Hts] [#publ | #publ]]".
-  + iDestruct "publ" as (T) "[%dec publ]".
-    move e: (TExpN t ts) => t' in dec ttsX *.
-    case: dec ttsX; try by move=> * {e}; subst t'.
-    rewrite -{}e {t'}.
-    move=> t1 t2 -> _ e _.
-    rewrite big_sepS_union_pers !big_sepS_singleton.
-    iDestruct "publ" as "[publ1 publ2]".
-    iLeft. iExists t2, (exps t1).
-    have -> : TExpN t (exps t1) = t1.
-      apply: base_exps_inj.
-      * by move/(f_equal base): e; rewrite !base_TExpN.
-      * by rewrite exps_TExpN exps_expN //=.
-    do !iSplit => //. iPureIntro.
-    have ->: ts ≡ₚ exps (TExpN t ts).
-      by rewrite exps_TExpN exps_expN //; apply/is_trueP.
-    by rewrite e exps_TExpN [_ ++ _]comm.
-  + iRight; do 2?iSplit => //.
-    by rewrite exps_TExpN exps_expN.
-- iDestruct 1 as "# [publ | publ]".
-  + iDestruct "publ" as (t' ts') "[%e [Ht1 Ht2]]".
-    rewrite e in ttsX *.
-    rewrite [public (TExpN _ (_ :: _))]public_eq minted_TExpN /=.
-    iSplit.
-      rewrite !public_minted minted_TExpN /=.
-      by iDestruct "Ht1" as "[??]"; eauto.
-    iLeft.
-    iExists {[TExpN t ts'; t']}.
-    rewrite big_sepS_union_pers !big_sepS_singleton.
-    do !iSplit => //.
-    iPureIntro.
-    rewrite -TExp_TExpN; apply: DExp; eauto.
-    by rewrite TExp_TExpN.
-  + iDestruct "publ" as "[s p]"; rewrite public_eq [minted]unlock; iSplit=> //.
-    rewrite {4}etts; iRight.
-    by rewrite exps_TExpN exps_expN //.
-Qed.
+(* move=> tNX tsN0. *)
+(* have ttsX : is_exp (TExpN t ts). *)
+(*   by rewrite is_exp_TExpN; case: (ts) tsN0. *)
+(* have [? [] ? [] H etts] : ∃ t' ts' H, TExpN t ts = TExpN' t' ts' H. *)
+(*   case: (TExpN t ts) ttsX => //=; eauto. *)
+(* apply: (anti_symm _). *)
+(* - rewrite public_eq minted_TExpN {2}etts {H etts}. *)
+(*   iDestruct 1 as "[# [Ht Hts] [#publ | #publ]]". *)
+(*   + iDestruct "publ" as (T) "[%dec publ]". *)
+(*     move e: (TExpN t ts) => t' in dec ttsX *. *)
+(*     case: dec ttsX; try by move=> * {e}; subst t'. *)
+(*     rewrite -{}e {t'}. *)
+(*     move=> t1 t2 -> _ e _. *)
+(*     rewrite big_sepS_union_pers !big_sepS_singleton. *)
+(*     iDestruct "publ" as "[publ1 publ2]". *)
+(*     iLeft. iExists t2, (exps t1). *)
+(*     have -> : TExpN t (exps t1) = t1. *)
+(*       apply: base_exps_inj. *)
+(*       * by move/(f_equal base): e; rewrite !base_TExpN. *)
+(*       * by rewrite exps_TExpN exps_expN //=. *)
+(*     do !iSplit => //. iPureIntro. *)
+(*     have ->: ts ≡ₚ exps (TExpN t ts). *)
+(*       by rewrite exps_TExpN exps_expN //; apply/is_trueP. *)
+(*     by rewrite e exps_TExpN [_ ++ _]comm. *)
+(*   + iRight; do 2?iSplit => //. *)
+(*     by rewrite exps_TExpN exps_expN. *)
+(* - iDestruct 1 as "# [publ | publ]". *)
+(*   + iDestruct "publ" as (t' ts') "[%e [Ht1 Ht2]]". *)
+(*     rewrite e in ttsX *. *)
+(*     rewrite [public (TExpN _ (_ :: _))]public_eq minted_TExpN /=. *)
+(*     iSplit. *)
+(*       rewrite !public_minted minted_TExpN /=. *)
+(*       by iDestruct "Ht1" as "[??]"; eauto. *)
+(*     iLeft. *)
+(*     iExists {[TExpN t ts'; t']}. *)
+(*     rewrite big_sepS_union_pers !big_sepS_singleton. *)
+(*     do !iSplit => //. *)
+(*     iPureIntro. *)
+(*     rewrite -TExp_TExpN; apply: DExp; eauto. *)
+(*     by rewrite TExp_TExpN. *)
+(*   + iDestruct "publ" as "[s p]"; rewrite public_eq [minted]unlock; iSplit=> //. *)
+(*     rewrite {4}etts; iRight. *)
+(*     by rewrite exps_TExpN exps_expN //. *)
+(* Qed. *)
+Admitted.
 
 Lemma public_TExp_iff t1 t2 :
   ¬ is_exp t1 →
@@ -607,10 +609,10 @@ apply: (anti_symm _); iIntros "#pub".
     symmetry in e.
     case/Permutation_singleton_r: e => -> ->; eauto.
     rewrite TExp0; eauto.
-  by rewrite minted_TExp /=; iDestruct "pub" as "[[??] [??]]"; eauto.
+  by rewrite minted_TExp //=; iDestruct "pub" as "[[??] [??]]"; eauto.
 - iDestruct "pub" as "[[p1 p2] | (s1 & s2 & pub)]".
     by iLeft; iExists t2, []; rewrite TExp0; eauto.
-  by iRight; rewrite /= minted_TExp; do !iSplit => //=.
+  by iRight; rewrite /= minted_TExp//; do !iSplit => //=.
 Qed.
 
 Lemma public_TExp2_iff t1 t2 t3 :
