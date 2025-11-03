@@ -334,11 +334,7 @@ Lemma is_exp_unfold t : is_exp t = PreTerm.is_exp (unfold_term t).
 Proof. by case: t => //= - []. Qed.
 
 Lemma is_exp_base t : ~~ is_exp (base t).
-Proof.
-rewrite is_exp_unfold unfold_base.
-case: (unfold_term t) (wf_unfold_term t) => //=.
-by move=> ? ? /and5P [].
-Qed.
+Proof. rewrite is_exp_unfold unfold_base. apply PreTerm.base_Nexp. exact: wf_unfold_term. Qed.
 
 Lemma base_expsK t : TExpN (base t) (exps t) = t.
 Proof.
