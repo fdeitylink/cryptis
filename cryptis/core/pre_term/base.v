@@ -607,7 +607,7 @@ elim: pt => //.
   elim: (ts) IHts wf_ts => // [t' ts' IHts' [IHt' ?] /andP [??]] /=.
   by rewrite IHt' // IHts'.
   by rewrite IH // /exp exps_expN // cancel_exps_canceled //
-    size_sort size_eq0 tsN0 base_expN // (sorted_sort le_trans).
+    size_sort size_eq0 tsN0 base_expN // sort_le_id.
 Qed.
 
 Lemma normalize_idem pt : normalize (normalize pt) = normalize pt.
