@@ -91,7 +91,7 @@ wp_apply (wp_mk_nonce_freshN ∅
 iIntros "%a %fresh %nonce #m_a #s_a #a_pred token".
 set ga := TExp (TInt 0) a.
 have ?: a ≠ ga.
-  by move=> contra; admit. (* rewrite contra is_nonce_TExp in nonce. *)
+  by move=> contra; rewrite contra is_nonce_TExp in nonce.
 rewrite big_sepS_union; last by set_solver.
 rewrite !big_sepS_singleton.
 iDestruct "token" as "[token_a token_ga]".

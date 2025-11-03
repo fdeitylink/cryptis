@@ -322,14 +322,6 @@ Definition is_exp t :=
 Lemma is_nonce_unfold t : is_nonce t = PreTerm.is_nonce (unfold_term t).
 Proof. by case: t => //=. Qed.
 
-(*
-Lemma is_nonce_TExpN t ts : is_nonce (TExpN t ts) = nilp ts && is_nonce t.
-Proof. by rewrite !is_nonce_unfold unfold_TExpN; case: ts. Qed.
-
-Lemma is_nonce_TExp t1 t2 : is_nonce (TExp t1 t2) = false.
-Proof. by rewrite is_nonce_TExpN. Qed.
-*)
-
 Lemma is_exp_unfold t : is_exp t = PreTerm.is_exp (unfold_term t).
 Proof. by case: t => //= - []. Qed.
 
@@ -363,6 +355,19 @@ Proof.
 rewrite is_exp_unfold=> tNX; apply: (inj_map unfold_term_inj).
 by rewrite unfold_exps PreTerm.exps_expN.
 Qed.
+
+Lemma is_nonce_TExpN t ts :
+  is_nonce (TExpN t ts) = nilp (cancel_exps (exps t ++ ts)) && is_nonce (base t).
+Proof.
+rewrite !is_nonce_unfold unfold_TExpN /PreTerm.exp.
+set es := sort _ _.
+have -> : size es == 0 = nilp (cancel_exps (exps t ++ ts)).
+by rewrite size_sort /cancel_exps map_cat unfold_exps /nilp size_map.
+case: ifP => //=. by rewrite unfold_base.
+Qed.
+
+Lemma is_nonce_TExp t1 t2 : ~~ is_exp t1 -> is_nonce (TExp t1 t2) = false.
+Proof. move => ?. by rewrite is_nonce_TExpN exps_expN. Qed.
 
 Lemma TExpNA t ts1 ts2 : TExpN (TExpN t ts1) ts2 = TExpN t (ts1 ++ ts2).
 Proof.
