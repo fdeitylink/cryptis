@@ -378,13 +378,36 @@ by rewrite perm_sym perm_sort.
 Qed.
 *) Admitted.
 
-(*
-Lemma is_exp_TExpN t ts : is_exp (TExpN t ts) = (ts != [::]) || is_exp t.
-Proof. by rewrite !is_exp_unfold unfold_TExpN; case: ts. Qed.
+Definition invs_canceled ts := PreTerm.invs_canceled (map unfold_term ts).
 
-Lemma is_exp_TExp t1 t2 : is_exp (TExp t1 t2).
-Proof. by rewrite is_exp_TExpN. Qed.
-*)
+Lemma invs_canceledP ts : reflect (forall t, t \in ts -> TInv t \notin ts) (invs_canceled ts).
+Proof.
+apply /(iffP idP).
+- move => /allP canceled t tin.
+  have: (PreTerm.inv (unfold_term t) \notin (map unfold_term ts)).
+  apply canceled. apply /mapP => /=. by exists t.
+  apply contra => TInv_in_ts. rewrite -unfold_TInv. apply /mapP => /=. by exists (TInv t).
+- move => canceled. apply /allP => /= pt /mapP [t t_in_ts ->].
+  rewrite -unfold_TInv. move: (canceled t t_in_ts). apply contra.
+  rewrite mem_map //. exact: unfold_term_inj.
+Qed.
+
+Lemma is_exp_TExpN t ts :
+  ~~ is_exp t -> invs_canceled ts ->
+  is_exp (TExpN t ts) = (ts != [::]).
+Proof.
+rewrite !is_exp_unfold unfold_TExpN => ??.
+by rewrite PreTerm.is_exp_exp ?wf_unfold_term // -!nilpE /nilp size_map.
+Qed.
+
+Lemma inv_Nid t : TInv t != t.
+Proof. by rewrite -(eqtype.inj_eq unfold_term_inj) unfold_TInv PreTerm.inv_Nid. Qed.
+
+Lemma is_exp_TExp t1 t2 : ~~ is_exp t1 -> is_exp (TExp t1 t2).
+Proof.
+move => ?. rewrite is_exp_TExpN //. apply /invs_canceledP.
+move => t. rewrite inE => /eqP ->. by rewrite inE inv_Nid.
+Qed.
 
 Lemma TExpN0 t : TExpN t [::] = t.
 Proof.
