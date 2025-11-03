@@ -483,6 +483,9 @@ Proof. rewrite /exp => ?. case: ifP => //=. by rewrite base_idem. Qed.
 Lemma exps_expN pt : ~~ is_exp pt -> exps pt = [::].
 Proof. by case: pt. Qed.
 
+Lemma expN_exps pt : wf_term pt -> exps pt = [::] -> ~~ is_exp pt.
+Proof. by case: pt => //= [_ ? /and5P [_ _ _ /eqP ?]]. Qed.
+
 Lemma exps_base pt : wf_term pt -> exps (base pt) = [::].
 Proof. case: pt => //= ?? /and5P [_ ? *]. exact: exps_expN. Qed.
 
