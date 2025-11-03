@@ -589,6 +589,14 @@ elim: pts => // [?? IH] canceled /=.
 rewrite insert_exp_canceled //; rewrite IH //; exact: (invs_canceled_cons canceled).
 Qed.
 
+Lemma exp_nil pt : wf_term pt -> exp pt [::] = pt.
+Proof.
+move => wf.
+rewrite /exp cats0 cancel_exps_canceled ?invs_canceled_exps //
+sort_le_id ?exps_sorted // size_eq0.
+by case: (pt) wf => //= [pt' pts' /and5P [_ _ _ /negbTE ->]].
+Qed.
+
 Lemma normalize_wf pt : wf_term pt -> normalize pt = pt.
 Proof.
 elim: pt => //.
