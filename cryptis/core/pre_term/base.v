@@ -506,10 +506,6 @@ Proof. by case: pt => //= [pt' pts' /and5P [_ _ _ _ /andP []]]. Qed.
 Lemma inv_invN pt : ~~ is_inv pt -> inv pt = PT1 O1Inv pt.
 Proof. by case: pt => - []. Qed.
 
-(*
-Lemma is_exp_exp pt pts : is_exp (exp pt pts) = (pts != [::]) || is_exp pt.
-Proof. by rewrite /exp size_eq0; case: eqP. Qed.
-*)
 
 Lemma perm_exp pt pts1 pts2 :
   wf_term pt -> all wf_term pts1 -> perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
@@ -595,6 +591,15 @@ move => wf.
 rewrite /exp cats0 cancel_exps_canceled ?invs_canceled_exps //
 sort_le_id ?exps_sorted // size_eq0.
 by case: (pt) wf => //= [pt' pts' /and5P [_ _ _ /negbTE ->]].
+Qed.
+
+Lemma is_exp_exp pt pts :
+  wf_term pt -> ~~ is_exp pt -> invs_canceled pts ->
+  is_exp (exp pt pts) = (pts != [::]).
+Proof.
+move => ?. case: pts => //=.
+  by rewrite exp_nil // => /negbTE ?.
+  move => *. by rewrite /exp size_sort exps_expN // cat0s cancel_exps_canceled.
 Qed.
 
 Lemma normalize_wf pt : wf_term pt -> normalize pt = pt.
