@@ -497,6 +497,12 @@ Proof. rewrite /exp => ?. case: ifP => //=. rewrite exps_base //. by case: sort.
 Lemma base_expsK pt : is_exp pt -> PTExp (base pt) (exps pt) = pt.
 Proof. by case: pt. Qed.
 
+Lemma invs_canceled_exps pt : wf_term pt -> invs_canceled (exps pt).
+Proof. by case: pt => //= [pt' pts' /and5P [_ _ _ _ /andP []]]. Qed.
+
+Lemma exps_sorted pt : wf_term pt -> sorted <=%O (exps pt).
+Proof. by case: pt => //= [pt' pts' /and5P [_ _ _ _ /andP []]]. Qed.
+
 Lemma inv_invN pt : ~~ is_inv pt -> inv pt = PT1 O1Inv pt.
 Proof. by case: pt => - []. Qed.
 
