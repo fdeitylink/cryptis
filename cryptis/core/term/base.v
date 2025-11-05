@@ -391,12 +391,12 @@ Proof. move => ?. by rewrite is_nonce_TExpN exps_expN. Qed.
 
 Lemma TExpNA t ts1 ts2 : TExpN (TExpN t ts1) ts2 = TExpN t (ts1 ++ ts2).
 Proof.
-(*
 apply: base_exps_inj; rewrite ?base_TExpN // !exps_TExpN.
-rewrite !perm_sort perm_sym perm_sort catA perm_cat2r.
-by rewrite perm_sym perm_sort.
+rewrite perm_sort perm_sym perm_sort perm_sym.
+apply perm_trans with (cancel_exps (cancel_exps (exps t ++ ts1) ++ ts2)).
+- apply perm_cancel_exps. by rewrite perm_cat2r perm_sort.
+- rewrite catA. apply cancel_exps_cat.
 Qed.
-*) Admitted.
 
 Definition invs_canceled ts := PreTerm.invs_canceled (map unfold_term ts).
 
