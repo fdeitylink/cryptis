@@ -357,6 +357,90 @@ Proof.
 move => wf1 wf2. by apply /(sameP eqP) /(iffP eqP) => [-> | <-]; rewrite inv_involutive.
 Qed.
 
+Lemma in_insert_exps pt1 pt2 pts : pt1 \in insert_exp pt2 pts -> pt1 \in pt2 :: pts.
+Proof. rewrite /insert_exp. case: ifP => _ //. by rewrite inE orbC => /mem_rem ->. Qed.
+
+Lemma in_cancel_exps pt pts : pt \in cancel_exps pts -> pt \in pts.
+Proof.
+elim: pts => //= [?? IH].
+move => /in_insert_exps /orP [/eqP -> | /IH in_pts'].
+- exact: mem_head.
+- by rewrite inE orbC in_pts'.
+Qed.
+
+Lemma count_insert_exp pt1 pt2 pts :
+  count_mem pt1 (insert_exp pt2 pts) =
+  if inv pt2 \in pts then
+    count_mem pt1 pts - (pt1 == inv pt2)
+  else
+    count_mem pt1 pts + (pt1 == pt2).
+Proof.
+rewrite /insert_exp.
+case: ifP => _; rewrite eq_sym.
+- exact: count_mem_rem.
+- exact: addnC.
+Qed.
+
+Lemma count_cancel pt pts :
+  wf_term pt -> all wf_term pts ->
+  count_mem pt (cancel_exps pts) = count_mem pt pts - count_mem (inv pt) pts.
+Proof.
+elim: pts => //= [pt' pts' IH] in pt * => ? /andP [??]. rewrite eq_sym.
+case: (pt =P pt') => [| /eqP /negbTE]; rewrite count_insert_exp => ->.
+- rewrite eqxx eq_sym (negbTE (inv_Nid _)).
+  case: ifP => /count_memPn /eqP;
+    rewrite !IH ?wf_inv // inv_involutive //.
+  + by rewrite -ltnNge => /[dup] /eqP -> /ltnW /eqP ->.
+  + rewrite addnC. exact: addnBA.
+- rewrite addn0. case: ifP => [_ | /count_memPn /eqP wt0]; rewrite -inv_eq_op // eq_sym.
+  + by rewrite IH // subBnAC.
+  + move: wt0. case: (pt =P inv pt') => [<- | _ _]; rewrite IH //.
+    by rewrite -subBnAC => /eqP ->.
+Qed.
+
+Lemma count_perm_cancel pts1 pts2 :
+  all wf_term pts1 -> all wf_term pts2 ->
+  (forall pt, wf_term pt ->
+         count_mem pt pts1 - count_mem (inv pt) pts1 =
+         count_mem pt pts2 - count_mem (inv pt) pts2) <->
+  perm_eq (cancel_exps pts1) (cancel_exps pts2).
+move => wfs1 wfs2. split.
+- move => wt_eq. rewrite /perm_eq. apply /allP => /= pt. rewrite mem_cat => /orP pt_in.
+  have wf_pt: wf_term pt. by case: pt_in => /in_cancel_exps => [ /(allP wfs1) | /(allP wfs2) ].
+  have /eqP := wt_eq _ wf_pt. by rewrite -!count_cancel.
+- move => *. rewrite -!count_cancel //. exact: permP.
+Qed.
+
+Lemma count_inv_cancel pt pts :
+  wf_term pt -> all wf_term pts ->
+  count_mem pt (cancel_exps pts) != 0 -> count_mem (inv pt) (cancel_exps pts) == 0.
+Proof.
+move => ??. by rewrite !count_cancel ?wf_inv // inv_involutive // -ltnNge => /ltnW.
+Qed.
+
+Lemma perm_cancel_exps pts1 pts2 :
+  all wf_term pts1 -> perm_eq pts1 pts2 -> perm_eq (cancel_exps pts1) (cancel_exps pts2).
+Proof.
+move => ? peq. have wfs2 : all wf_term pts2. by rewrite -(perm_all _ peq).
+apply count_perm_cancel => // pt wf_pt.
+have -> : count_mem pt pts1 = count_mem pt pts2. exact: permP.
+have -> // : count_mem (inv pt) pts1 = count_mem (inv pt) pts2. exact: permP.
+Qed.
+
+Lemma cancel_exps_cat pts1 pts2 :
+  all wf_term pts1 -> all wf_term pts2 ->
+  perm_eq (cancel_exps (cancel_exps pts1 ++ pts2))
+          (cancel_exps (pts1 ++ pts2)).
+move => wfs1 ?. apply count_perm_cancel; rewrite ?all_cat ?wf_cancel_exps ?wfs1 //.
+move => pt wf_pt. rewrite !count_cat.
+case: (count_mem pt (cancel_exps pts1) =P 0) => [| /eqP wtN0].
+- rewrite !count_cancel ?wf_inv // => /[dup] /eqP ? ->.
+  by rewrite inv_involutive // add0n !subnDA addnC subnBA.
+- have := count_inv_cancel wf_pt wfs1 wtN0.
+  rewrite !count_cancel ?wf_inv // inv_involutive // => /[dup] ? /eqP ->.
+  by rewrite add0n subnDA addnBAC.
+Qed.
+
 Lemma perm_insert_exp pt pts1 pts2 :
   perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
 Proof.
@@ -392,68 +476,6 @@ have [pt2_pts|pt2_pts] := ifPn (inv pt2 \in pts).
   case: ifPn => [/eqP ->|_]; first by rewrite eqxx.
   apply/perm_consP. exists 1, (rcons pts pt1).
   rewrite perm_rcons; split => //=; by rewrite -cats1.
-Qed.
-
-Lemma perm_cancel_exps_rcons pt pts :
-  wf_term pt -> all wf_term pts ->
-  perm_eq (cancel_exps (pt :: pts)) (cancel_exps (rcons pts pt)).
-Proof.
-move=> wf_pt; elim: pts => [|pt' pts' IH] /= => [_|/andP [wf_pt' /IH {}IH]].
-- apply perm_refl.
-- apply perm_trans with (insert_exp pt' (insert_exp pt (cancel_exps pts'))).
-    exact: perm_insert_exp_swap.
-    exact: perm_insert_exp.
-Qed.
-
-Lemma perm_cancel_exps_catC pts1 pts2 :
-  all wf_term pts1 -> all wf_term pts2 ->
-  perm_eq (cancel_exps (pts1 ++ pts2)) (cancel_exps (pts2 ++ pts1)).
-Proof.
-move=> wf1 wf2.
-elim: pts1 => [|pt1 pts1' IH] /= in pts2 wf1 wf2 *.
-  by rewrite cats0 perm_refl.
-case/andP: wf1 => [wf wf1].
-have e1 : perm_eq (cancel_exps (pt1 :: (pts1' ++ pts2)))
-                  (cancel_exps (rcons (pts1' ++ pts2) pt1)).
-  apply: perm_cancel_exps_rcons => //.
-  by rewrite all_cat wf1.
-rewrite (perm_trans e1) //.
-rewrite -cats1 -catA.
-have e2 : perm_eq (cancel_exps (pts1' ++ pts2 ++ [:: pt1]))
-                  (cancel_exps ((pts2 ++ [:: pt1]) ++ pts1')).
-  by apply: IH; rewrite // all_cat wf2 /= wf.
-by rewrite (perm_trans e2) // -catA.
-Qed.
-
-Lemma perm_cancel_exps pts1 pts2 :
-  all wf_term pts1 -> perm_eq pts1 pts2 -> perm_eq (cancel_exps pts1) (cancel_exps pts2).
-Proof.
-elim: pts1 pts2 => // [| pt1 pts1' IH].
-- move => pts2 _. by rewrite perm_sym => /perm_nilP ->.
-- move => pts2. case /andP => wf1 wfs1. rewrite perm_sym => H.
-  case (perm_consP H) => [i [u [H1 H2]]].
-  apply perm_trans with (cancel_exps (rot i pts2)).
-    + rewrite H1 //. apply /perm_insert_exp /IH => //. by rewrite perm_sym.
-    + apply perm_trans with (cancel_exps (take i pts2 ++ drop i pts2)).
-      have /allP wfs2 : all wf_term pts2. by rewrite (perm_all _ H) /= wf1.
-      * apply perm_cancel_exps_catC; apply /allP.
-          move => ? /mem_drop in_pt. exact: wfs2.
-          move => ? /mem_take in_pt. exact: wfs2.
-      * by rewrite cat_take_drop.
-Qed.
-
-Lemma in_insert_exps pt1 pt2 pts : pt1 \in insert_exp pt2 pts -> pt1 \in pt2 :: pts.
-Proof.
-rewrite /insert_exp. case: ifP => //=.
-move => _ /mem_rem in_pts. by rewrite in_cons orbC in_pts.
-Qed.
-
-Lemma in_cancel_exps pt pts : pt \in cancel_exps pts -> pt \in pts.
-Proof.
-elim: pts => //= [?? IH].
-move => /in_insert_exps /orP [/eqP -> | /IH in_pts'].
-- exact: mem_head.
-- by rewrite in_cons orbC in_pts'.
 Qed.
 
 (*
