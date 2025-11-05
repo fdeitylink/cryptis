@@ -345,6 +345,9 @@ Proof. elim: pts => [| ?? IH] // /andP [??]. by rewrite wf_insert_exp // IH. Qed
 Lemma inv_Nid pt : inv pt != pt.
 Proof. case: pt => // - [] // ?. apply /eqP => /(f_equal height) /=. lia. Qed.
 
+Lemma eq_Ninv pt1 pt2 : pt1 == pt2 -> pt1 != inv pt2.
+Proof. move => /eqP ->. rewrite eq_sym. exact: inv_Nid. Qed.
+
 Lemma inv_involutive pt : wf_term pt -> inv (inv pt) = pt.
 Proof. case: pt => // - [] //. by case => // - []. Qed.
 
@@ -452,9 +455,6 @@ move => /in_insert_exps /orP [/eqP -> | /IH in_pts'].
 - exact: mem_head.
 - by rewrite in_cons orbC in_pts'.
 Qed.
-
-Lemma eq_Ninv pt1 pt2 : pt1 == pt2 -> pt1 != inv pt2.
-Proof. move => /eqP ->. rewrite eq_sym. exact: inv_Nid. Qed.
 
 (*
 Lemma tsize_exp t ts :
