@@ -425,8 +425,8 @@ Proof. by rewrite -(eqtype.inj_eq unfold_term_inj) unfold_TInv PreTerm.inv_Nid. 
 
 Lemma is_exp_TExp t1 t2 : ~~ is_exp t1 -> is_exp (TExp t1 t2).
 Proof.
-move => ?. rewrite is_exp_TExpN //. apply /invs_canceledP.
-move => t. rewrite inE => /eqP ->. by rewrite inE inv_Nid.
+move => ?. rewrite is_exp_TExpN //. apply /invs_canceledP => ?.
+rewrite !inE => /eqP ->. exact: inv_Nid.
 Qed.
 
 Lemma TExpN0 t : TExpN t [::] = t.
