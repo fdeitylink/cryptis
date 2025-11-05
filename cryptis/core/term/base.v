@@ -299,6 +299,26 @@ Qed.
 Definition cancel_exps ts :=
   map fold_term (PreTerm.cancel_exps (map unfold_term ts)).
 
+Lemma perm_cancel_exps ts1 ts2 :
+  perm_eq ts1 ts2 -> perm_eq (cancel_exps ts1) (cancel_exps ts2).
+Proof.
+move => peq. rewrite /cancel_exps.
+apply perm_map. apply PreTerm.perm_cancel_exps.
+- apply wf_unfold_terms.
+- exact: perm_map.
+Qed.
+
+Lemma cancel_exps_cat ts1 ts2 :
+  perm_eq (cancel_exps (cancel_exps ts1 ++ ts2))
+          (cancel_exps (ts1 ++ ts2)).
+Proof.
+rewrite /cancel_exps. apply perm_map. rewrite !map_cat -map_comp.
+under eq_map => ? do rewrite /= unfold_fold. rewrite map_id_in.
+- apply PreTerm.cancel_exps_cat; apply wf_unfold_terms.
+- move => /= ? /PreTerm.in_cancel_exps pt_in. apply PreTerm.normalize_wf.
+  move: pt_in => /mapP [? _] ->. exact: wf_unfold_term.
+Qed.
+
 Lemma exps_TExpN t ts :
   exps (TExpN t ts) = sort <=%O (cancel_exps (exps t ++ ts)).
 Proof.
