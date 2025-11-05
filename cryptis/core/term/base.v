@@ -431,11 +431,12 @@ Qed.
 
 Lemma TExpN0 t : TExpN t [::] = t.
 Proof.
-(*
-apply: base_exps_inj; rewrite ?base_TExpN //.
-by rewrite exps_TExpN cats0 perm_sort.
+apply: base_exps_inj.
+- exact: base_TExpN.
+- rewrite exps_TExpN cats0 perm_sort /cancel_exps unfold_exps.
+  case: (t) => //= [?? /and5P [_ _ _ _ /andP [_ ?]]].
+  by rewrite perm_map // PreTerm.cancel_exps_canceled.
 Qed.
-*) Admitted.
 
 Definition tsize t := PreTerm.tsize (unfold_term t).
 
