@@ -302,7 +302,7 @@ Definition cancel_exps ts :=
 Lemma perm_cancel_exps ts1 ts2 :
   perm_eq ts1 ts2 -> perm_eq (cancel_exps ts1) (cancel_exps ts2).
 Proof.
-move => peq. rewrite /cancel_exps.
+move => ?. rewrite /cancel_exps.
 apply perm_map. apply PreTerm.perm_cancel_exps.
 - apply wf_unfold_terms.
 - exact: perm_map.
