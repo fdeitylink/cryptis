@@ -478,18 +478,6 @@ have [pt2_pts|pt2_pts] := ifPn (inv pt2 \in pts).
   rewrite perm_rcons; split => //=; by rewrite -cats1.
 Qed.
 
-(*
-Lemma tsize_exp t ts :
-  tsize (exp t ts) =
-  if ts == [::] then tsize t
-  else S (\sum_(t' <- base t :: exps t ++ ts) tsize t').
-Proof.
-rewrite /exp [LHS]fun_if /= size_eq0.
-have: perm_eq (sort <=%O (exps t ++ ts)) (exps t ++ ts) by rewrite perm_sort.
-by move=> e; rewrite !big_cons !big_map (perm_big _ e).
-Qed.
-*)
-
 Lemma base_expN pt : ~~ is_exp pt -> base pt = pt.
 Proof. by case: pt. Qed.
 
@@ -647,6 +635,19 @@ Lemma normalize_exp_wf pt pts :
 Proof.
 move => pt' /eqP expsN0. rewrite base_expsK ?wf_normalize //.
 by apply: contraNT expsN0 => /exps_expN ->.
+Qed.
+
+Lemma tsize_exp t ts :
+  ~~is_exp t -> invs_canceled ts ->
+  tsize (exp t ts) =
+  if ts == [::] then tsize t
+  else S (\sum_(t' <- base t :: ts) tsize t').
+Proof.
+move => ??. rewrite /exp [LHS]fun_if /= size_eq0.
+rewrite exps_expN // cat0s cancel_exps_canceled //.
+rewrite -size_eq0 size_sort size_eq0. rewrite base_expN //.
+have e: perm_eq (sort <=%O ts) ts by rewrite perm_sort.
+by rewrite !big_cons !big_map (perm_big _ e).
 Qed.
 
 Module Exports.
