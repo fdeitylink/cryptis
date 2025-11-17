@@ -442,21 +442,18 @@ Definition tsize t := PreTerm.tsize (unfold_term t).
 
 Lemma tsize_gt0 t : 0 < tsize t. Proof. exact: PreTerm.tsize_gt0. Qed.
 
-(*
 Lemma tsize_TExpN t ts :
+  ~~ is_exp t -> invs_canceled ts ->
   tsize (TExpN t ts)
-  = (ts != [::]) && ~~ is_exp t + tsize t + sumn (map tsize ts).
+  = (ts != [::]) + tsize t + sumn (map tsize ts).
 Proof.
-rewrite /tsize unfold_TExpN PreTerm.tsize_exp is_exp_unfold.
+move => nExp ?.
+rewrite /tsize unfold_TExpN PreTerm.tsize_exp // -?is_exp_unfold //.
 rewrite -size_eq0 size_map size_eq0.
-case: (altP eqP) => [->|tsN0] //=; rewrite ?addn0 //.
-rewrite big_cons big_cat /= sumnE !big_map.
-case: (boolP (PreTerm.is_exp (unfold_term t))) => [|tNexp] /=.
-- case: t => //= pt pts _ _.
-  by rewrite big_cons !big_map !addnA add0n addSn.
-- by rewrite PreTerm.base_expN // PreTerm.exps_expN //= big_nil add0n.
+case: (altP eqP) => [-> |tsN0] //=; rewrite ?addn0 //.
+rewrite big_cons /= sumnE !big_map.
+by case: (t) nExp.
 Qed.
-*)
 
 Lemma TExpN_injl : left_injective TExpN.
 Proof.
