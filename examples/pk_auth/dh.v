@@ -231,7 +231,9 @@ Qed.
 
 End PKDH.
 
-Arguments PK_DH {Σ _ _} pk_dh_confirmation.
+About PK_DH.
+
+Arguments PK_DH {Σ _ _ _ _} pk_dh_confirmation.
 Arguments pk_dh_ctx {Σ _ _ _} N _.
 Arguments pk_dh_session_meta {Σ _ _ _} _ _ _ _ {L _ _} _ _ _.
 Arguments pk_dh_session_meta_token {Σ _ _ _} _ _ _ _ _ _.
