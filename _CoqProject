@@ -114,6 +114,14 @@ examples/pk_auth/nsl.v
 examples/pk_auth/dh_game.v
 examples/pk_auth/dh.v
 
+## Opaque verification
+
+examples/opaque/opaque.v
+examples/opaque/impl.v
+examples/opaque/shared.v
+examples/opaque/client_proofs.v
+examples/opaque/server_proofs.v
+
 ## TLS 1.3
 
 examples/tls13.v
