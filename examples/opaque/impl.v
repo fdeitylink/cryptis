@@ -48,7 +48,7 @@ Definition client_session : val := λ: "g" "sid" "ssid" "c" "pw",
     bind: "m2" := list_of_term (recv "c") in
     list_match: [ "β"; "X_s"; "envelope"; "A_s" ] := "m2" in
     (* TODO: check β ∈ G *)
-    let: "rw" := derive_senc (H "rw" [ "pw"; (texp "β" (hl_inv "r")) ]) in
+    let: "rw" := derive_senc_key (H "rw" [ "pw"; (texp "β" (hl_inv "r")) ]) in
     bind: "envelope_dec" := adec "rw" (* TODO: envelope tag *) "envelope" in
     list_match: [ "p_u"; "P_u"; "P_s" ] := "envelope_dec" in
     let: "K" := KE "H" "p_u" "x_u" "P_s" "X_s" in
@@ -94,7 +94,7 @@ Definition server_session : val := λ: "g" "db" "c",
 (* but maybe use this as an example?  that the files can be computed. *)
 Definition make_file : val := λ: "g" "AuthEnc" "pw",
     let: "k_s" := mk_nonce #() in
-    let: "rw" := OPRF "k_s" "pw" in
+    let: "rw" := derive_senc_key (OPRF "k_s" "pw") in
     let: "p_s" := mk_nonce #() in
     let: "p_u" := mk_nonce #() in
     let: "P_s" := texp "g" "p_s" in
