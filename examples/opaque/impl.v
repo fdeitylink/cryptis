@@ -21,40 +21,42 @@ Local Existing Instance ticket_lock.
 
 Notation opN := (nroot.@"op").
 
-Definition OPRF : val := λ: "H" "H'" "k",
-    λ: "x", "H" ["x"; (texp ("H'" "x") "k")].
+Definition _H : string -> val := fun tag => (λ: "val", hash (tag (Tag $ opN.@tag) "val"))%V.
+Definition prf  := _H.
+Definition H    := _H.
+Definition H'   := _H.
+
+Definition OPRF : val := λ: "k",
+    λ: "x", H "rw" ["x"; (texp ((H' "α") "x") "k")].
 
 (* TODO: use the key exchange formula from the OPAQUE paper *)
-Definition KE : val := λ: "H" "p_a" "x_a" "P_b" "X_b",
-    "H" [texp "P_b" "p_a" ; texp "X_b" "x_a"].
-
-(* TODO: use tags instead of literal ints to make SK private, but A_s and A_u public *)
+Definition KE : val := λ: "p_a" "x_a" "P_b" "X_b",
+    H "K" [texp "P_b" "p_a" ; texp "X_b" "x_a"].
 
 Module Client.
 
 Section Client.
 
-(* prf = hash *)
 (* TODO: sid/ssid source? *)
 Definition client_session : val := λ: "g" "sid" "ssid" "c" "pw",
     let: "x_u" := mk_nonce #() in
     let: "r" := mk_nonce #() in
-    let: "α" := texp (Hprime "pw") in (* TODO: perform hash H' / ^T? *)
+    let: "α" := texp (H' "α" "pw") "r" in
     let: "X_u" := texp "g" "x_u" in
     let: "m1" := term_of_list [ "sid"; "ssid"; "α"; "X_u" ] in
     send "c" "m1" ;;
     bind: "m2" := list_of_term (recv "c") in
     list_match: [ "β"; "X_s"; "envelope"; "A_s" ] := "m2" in
     (* TODO: check β ∈ G *)
-    let: "rw" := derive_senc (H [ "pw"; (texp "β" (hl_inv "r")) ]) in (* TODO: Hash H *)
+    let: "rw" := derive_senc (H "rw" [ "pw"; (texp "β" (hl_inv "r")) ]) in
     bind: "envelope_dec" := adec "rw" (* TODO: envelope tag *) "envelope" in
     list_match: [ "p_u"; "P_u"; "P_s" ] := "envelope_dec" in
     let: "K" := KE "H" "p_u" "x_u" "P_s" "X_s" in
-    let: "ssid'" := H ["sid"; "ssid"; "α"] in (* TODO: Hash H *)
-    let: "SK" := prf [ "K"; #0; "ssid'" ] in (* TODO: prf *)
-    guard: "A_s" = prf [ "K"; #1; "ssid'" ] in
-    let: "A_u" := "prf" [ "K"; #2; "ssid'" ] in
-    let "m3" := term_of_list [ "c"; "A_u" ] in
+    let: "ssid'" := H "ssid'" ["sid"; "ssid"; "α"] in
+    let: "SK" := prf "SK" [ "K"; "ssid'" ] in
+    guard: "A_s" = prf "A_s" [ "K"; "ssid'" ] in
+    let: "A_u" := prf "A_u" [ "K"; "ssid'" ] in
+    let: "m3" := term_of_list [ "c"; "A_u" ] in
     send "m3" ;;
     SOME [ "sid"; "ssid"; "SK" ].
 
@@ -68,7 +70,7 @@ Section Server.
 
 (* OPRF and KE defined entirely in terms of other variables: defined elsewhere *)
 (* enforce that other side is consistently the same person *)
-Definition server_session : val := λ: "g" "H" "prf" "db" "c",
+Definition server_session : val := λ: "g" "db" "c",
     bind: "m1" := list_of_term (recv "c") in
     list_match: [ "sid"; "ssid"; "α"; "X_u" ] := "m1" in
     (* TODO: check α ∈ G *)
@@ -77,22 +79,22 @@ Definition server_session : val := λ: "g" "H" "prf" "db" "c",
     let: "x_s" := mk_nonce #() in
     let: "β" := texp "α" "k_s" in
     let: "X_s" := texp "g" "x_s" in
-    let: "K" := KE "H" "p_s" "x_s" "P_u" "X_u" in
-    let: "ssid'" := "H" [ "sid"; "ssid"; "α" ] in
-    let: "SK" := "prf" [ "K"; #0; "ssid'" ] in
-    let: "A_s" := "prf" [ "K"; #1; "ssid'" ] in
+    let: "K" := KE "p_s" "x_s" "P_u" "X_u" in
+    let: "ssid'" := H "ssid'" [ "sid"; "ssid"; "α" ] in
+    let: "SK" := prf "SK" [ "K"; "ssid'" ] in
+    let: "A_s" := prf "A_s" [ "K"; "ssid'" ] in
     let: "m2" := term_of_list [ "β"; "X_s"; "envelope"; "A_s" ] in
     send "c" "m2" ;;
     bind: "m3" := list_of_term (recv "c") in
     list_match: [ "c"; "A_u" ] := "m3" in
-    guard: "A_u" = prf [ "K"; #2; "ssid'" ] in
+    guard: "A_u" = prf "A_u" [ "K"; "ssid'" ] in
     SOME [ "sid"; "ssid"; "SK" ].
 
 (* not useful: assume that files in db are properly formed instead *)
 (* but maybe use this as an example?  that the files can be computed. *)
-Definition make_file : val := λ: "g" "H" "H'" "AuthEnc" "pw",
+Definition make_file : val := λ: "g" "AuthEnc" "pw",
     let: "k_s" := mk_nonce #() in
-    let: "rw" := (OPRF "H" "H'" "k_s") "pw" in
+    let: "rw" := OPRF "k_s" "pw" in
     let: "p_s" := mk_nonce #() in
     let: "p_u" := mk_nonce #() in
     let: "P_s" := texp "g" "p_s" in
