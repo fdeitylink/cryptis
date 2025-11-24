@@ -512,47 +512,57 @@ Lemma term_rect (T : term -> Type)
   (H4 : forall kt t, T t -> T (TKey kt t))
   (H5 : forall k, T k -> forall t, T t -> T (TSeal k t))
   (H6 : forall t, T t -> T (THash t))
-  (H7 : forall t, T t -> ~~ is_exp t ->
+  (H7 : forall t, T t -> ~~ is_inv t -> T (TInv t))
+  (H8 : forall t, T t -> ~~ is_exp t ->
         forall ts, foldr (fun t R => T t * R)%type unit ts ->
                    ts != [::] ->
                    sorted <=%O ts ->
-        T (TExpN t ts))
-  (H8 : forall t, T t -> T (TInv t)) :
+                   invs_canceled ts ->
+        T (TExpN t ts)) :
   forall t, T t.
 Proof.
-(*
-move=> t; rewrite -(unfold_termK t) [fold_term]unlock.
+move => t; rewrite -(unfold_termK t) [fold_term]unlock.
 move: (wf_unfold_term t).
 elim: (unfold_term t) => {t} /=.
-- by case=> *; eauto.
-- by case=> *; eauto.
-- by case=> [] t1 IH1 t2 IH2 /andP [/IH1 ? /IH2 ?]; eauto.
-move=> pt IHpt pts IHpts /and5P [wf_pt ptNexp wf_pts ptsN0 sorted_pts].
+- by case; rewrite /fold_term_def /=.
+- case; [rewrite /fold_term_def /=; auto .. |].
+  move => pt IH /andP [nInv /[dup] ? /IH /H7 H].
+  have: fold_term (PreTerm.PT1 O1Inv pt) = TInv (fold_term pt).
+  apply unfold_term_inj.
+  by rewrite unfold_TInv -PreTerm.inv_invN // !fold_termK // PreTerm.wf_inv.
+  rewrite [fold_term]unlock => ->.
+  apply H. rewrite -[pt]fold_termK // [fold_term]unlock in nInv. by rewrite is_inv_unfold.
+- by case => [] ???? /andP [??]; rewrite /fold_term_def /=; auto.
+- move => pt IHpt pts IHpts /[dup] wf_exp /and5P [wf_pt ptNexp wf_pts ptsN0 /andP [sorted_pts canceled_pts]].
+
 case: eqP ptsN0 => //= ptsN0 _.
 have [t e_pt] : {t | pt = unfold_term t}.
   by exists (fold_term pt); rewrite fold_termK.
-rewrite {}e_pt {pt} in IHpt wf_pt ptNexp *.
+rewrite {}e_pt {pt} in IHpt wf_pt ptNexp wf_exp *.
 have [ts e_pts] : {ts | pts = map unfold_term ts}.
   exists (map fold_term pts).
   rewrite -map_comp map_id_in // => pt' pt'_pts.
   by rewrite /= fold_termK // (allP wf_pts).
-move: (PreTerm.normalize_exp_wf _ _ _) => wf.
-have tsN0: ts != [::].
-  by move/eqP: ptsN0; rewrite e_pts -!size_eq0 size_map.
-rewrite {}e_pts {pts ptsN0} in IHpts wf_pts sorted_pts wf *.
-rewrite (_ : TExpN' _ _ _ = TExpN t ts); last first.
-  apply: unfold_term_inj.
-  rewrite unfold_TExpN /PreTerm.exp /= !size_map size_eq0 (negbTE tsN0).
-  by rewrite normalize_unfold1 normalize_unfoldn.
-apply: H7 => //.
-- by rewrite -(unfold_termK t) unlock; apply: IHpt.
-- by rewrite is_exp_unfold.
-- elim: ts IHpts wf_pts {wf tsN0 sorted_pts} => /= [[] //|t' ts IH [] IHt /IH IHts].
-  case/andP => {}/IHt IHt {}/IHts IHts; split => //.
-  by rewrite -[t']unfold_termK unlock.
-- by move: sorted_pts; rewrite sorted_map.
+
+  have: fold_term (PreTerm.PTExp (unfold_term t) pts) = TExpN t ts.
+  apply unfold_term_inj.
+  rewrite unfold_TExpN !fold_termK // -e_pts /PreTerm.exp PreTerm.base_expN //
+    PreTerm.exps_expN //= PreTerm.cancel_exps_canceled // !sort_le_id //.
+  move: ptsN0 => /nilP. by rewrite /nilp => /negbTE ->.
+  rewrite [fold_term]unlock => ->.
+
+  apply H8.
+  - rewrite -(unfold_termK t) unlock. apply: IHpt. exact: wf_unfold_term.
+  - by rewrite is_exp_unfold.
+  - have -> : ts = map fold_term pts. rewrite e_pts -map_comp map_id_in //= => ?.
+    by rewrite unfold_termK.
+    elim: (pts) IHpts wf_pts => //= [pt' ? IH [T_pt' ?] /andP [??]]; split.
+      + rewrite [fold_term]unlock. exact: T_pt'.
+      + exact: IH.
+  - rewrite -size_eq0 -(size_map unfold_term) -e_pts size_eq0. exact /eqP.
+  - move: sorted_pts. by rewrite e_pts sorted_map.
+  - by rewrite /invs_canceled -e_pts canceled_pts.
 Qed.
-*) Admitted.
 
 Definition term_ind (P : term -> Prop) := @term_rect P.
 
