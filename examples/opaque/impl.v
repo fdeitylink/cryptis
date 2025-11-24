@@ -27,9 +27,10 @@ Definition H    := _H.
 Definition H'   := _H.
 Definition AuthEnc : val := λ: "key" "v", senc "key" (Tag $ opN.@"AuthEnc") "v".
 Definition AuthDec : val := λ: "key" "v", sdec "key" (Tag $ opN.@"AuthEnc") "v".
+Definition g := (TInt 0).
 
 Definition OPRF : val := λ: "k",
-    λ: "x", H "rw" ["x"; (texp ((H' "α") "x") "k")].
+λ: "x", H "rw" ["x"; (texp (H' "α" "x") "k")].
 
 (* TODO: use the key exchange formula from the OPAQUE paper *)
 Definition KE : val := λ: "p_a" "x_a" "P_b" "X_b",
@@ -40,11 +41,11 @@ Module Client.
 Section Client.
 
 (* TODO: sid/ssid source? *)
-Definition client_session : val := λ: "g" "sid" "ssid" "c" "pw",
+Definition client_session : val := λ: "sid" "ssid" "c" "pw",
     let: "x_u" := mk_nonce #() in
     let: "r" := mk_nonce #() in
     let: "α" := texp (H' "α" "pw") "r" in
-    let: "X_u" := texp "g" "x_u" in
+    let: "X_u" := texp g "x_u" in
     let: "m1" := term_of_list [ "sid"; "ssid"; "α"; "X_u" ] in
     send "c" "m1" ;;
     bind: "m2" := list_of_term (recv "c") in
@@ -72,7 +73,7 @@ Section Server.
 
 (* OPRF and KE defined entirely in terms of other variables: defined elsewhere *)
 (* enforce that other side is consistently the same person *)
-Definition server_session : val := λ: "g" "db" "c",
+Definition server_session : val := λ: "db" "c",
     bind: "m1" := list_of_term (recv "c") in
     list_match: [ "sid"; "ssid"; "α"; "X_u" ] := "m1" in
     (* TODO: check α ∈ G *)
@@ -80,7 +81,7 @@ Definition server_session : val := λ: "g" "db" "c",
     list_match: [ "k_s"; "p_s"; "P_s"; "P_u"; "envelope" ] := "file" in
     let: "x_s" := mk_nonce #() in
     let: "β" := texp "α" "k_s" in
-    let: "X_s" := texp "g" "x_s" in
+    let: "X_s" := texp g "x_s" in
     let: "K" := KE "p_s" "x_s" "P_u" "X_u" in
     let: "ssid'" := H "ssid'" [ "sid"; "ssid"; "α" ] in
     let: "SK" := prf "SK" [ "K"; "ssid'" ] in
@@ -94,13 +95,13 @@ Definition server_session : val := λ: "g" "db" "c",
 
 (* not useful: assume that files in db are properly formed instead *)
 (* but maybe use this as an example?  that the files can be computed. *)
-Definition make_file : val := λ: "g" "pw",
+Definition make_file : val := λ: "pw",
     let: "k_s" := mk_nonce #() in
     let: "rw" := derive_senc_key (OPRF "k_s" "pw") in
     let: "p_s" := mk_nonce #() in
     let: "p_u" := mk_nonce #() in
-    let: "P_s" := texp "g" "p_s" in
-    let: "P_u" := texp "g" "p_u" in
+    let: "P_s" := texp g "p_s" in
+    let: "P_u" := texp g "p_u" in
     let: "c" := AuthEnc "rw" ["p_u"; "P_u"; "P_s"] in
     SOME ["k_s"; "p_s"; "P_s"; "P_u"; "c"].
 
