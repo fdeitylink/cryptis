@@ -25,6 +25,8 @@ Definition _H : string -> val := fun tag => (λ: "val", hash (tag (Tag $ opN.@ta
 Definition prf  := _H.
 Definition H    := _H.
 Definition H'   := _H.
+Definition AuthEnc : val := λ: "key" "v", senc "key" (Tag $ opN.@"AuthEnc") "v".
+Definition AuthDec : val := λ: "key" "v", sdec "key" (Tag $ opN.@"AuthEnc") "v".
 
 Definition OPRF : val := λ: "k",
     λ: "x", H "rw" ["x"; (texp ((H' "α") "x") "k")].
@@ -49,7 +51,7 @@ Definition client_session : val := λ: "g" "sid" "ssid" "c" "pw",
     list_match: [ "β"; "X_s"; "envelope"; "A_s" ] := "m2" in
     (* TODO: check β ∈ G *)
     let: "rw" := derive_senc_key (H "rw" [ "pw"; (texp "β" (hl_inv "r")) ]) in
-    bind: "envelope_dec" := adec "rw" (* TODO: envelope tag *) "envelope" in
+    bind: "envelope_dec" := AuthDec "rw" "envelope" in
     list_match: [ "p_u"; "P_u"; "P_s" ] := "envelope_dec" in
     let: "K" := KE "H" "p_u" "x_u" "P_s" "X_s" in
     let: "ssid'" := H "ssid'" ["sid"; "ssid"; "α"] in
@@ -92,14 +94,14 @@ Definition server_session : val := λ: "g" "db" "c",
 
 (* not useful: assume that files in db are properly formed instead *)
 (* but maybe use this as an example?  that the files can be computed. *)
-Definition make_file : val := λ: "g" "AuthEnc" "pw",
+Definition make_file : val := λ: "g" "pw",
     let: "k_s" := mk_nonce #() in
     let: "rw" := derive_senc_key (OPRF "k_s" "pw") in
     let: "p_s" := mk_nonce #() in
     let: "p_u" := mk_nonce #() in
     let: "P_s" := texp "g" "p_s" in
     let: "P_u" := texp "g" "p_u" in
-    let: "c" := "AuthEnc" "rw" ["p_u"; "P_u"; "P_s"] in
+    let: "c" := AuthEnc "rw" ["p_u"; "P_u"; "P_s"] in
     SOME ["k_s"; "p_s"; "P_s"; "P_u"; "c"].
 
 End Server.
