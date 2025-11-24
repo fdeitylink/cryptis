@@ -57,7 +57,7 @@ Definition client_session : val := λ: "sid" "ssid" "c" "pw",
     let: "K" := KE "H" "p_u" "x_u" "P_s" "X_s" in
     let: "ssid'" := H "ssid'" ["sid"; "ssid"; "α"] in
     let: "SK" := prf "SK" [ "K"; "ssid'" ] in
-    guard: "A_s" = prf "A_s" [ "K"; "ssid'" ] in
+    guard: eq_term "A_s" (prf "A_s" [ "K"; "ssid'" ]) in
     let: "A_u" := prf "A_u" [ "K"; "ssid'" ] in
     let: "m3" := term_of_list [ "c"; "A_u" ] in
     send "m3" ;;
@@ -90,7 +90,7 @@ Definition server_session : val := λ: "db" "c",
     send "c" "m2" ;;
     bind: "m3" := list_of_term (recv "c") in
     list_match: [ "c"; "A_u" ] := "m3" in
-    guard: "A_u" = prf "A_u" [ "K"; "ssid'" ] in
+    guard: eq_term "A_u" (prf "A_u" [ "K"; "ssid'" ]) in
     SOME [ "sid"; "ssid"; "SK" ].
 
 (* not useful: assume that files in db are properly formed instead *)
