@@ -73,7 +73,7 @@ Section Server.
 
 (* OPRF and KE defined entirely in terms of other variables: defined elsewhere *)
 (* enforce that other side is consistently the same person *)
-Definition server_session : val := λ: "db" "c",
+Definition server_session : val := λ: "sid" "ssid" "db" "c",
     bind: "m1" := list_of_term (recv "c") in
     list_match: [ "sid"; "ssid"; "α"; "X_u" ] := "m1" in
     (* TODO: check α ∈ G *)
