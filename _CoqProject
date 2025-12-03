@@ -116,11 +116,12 @@ examples/pk_auth/dh.v
 
 ## Opaque verification
 
-examples/opaque/opaque.v
+examples/opaque.v
 examples/opaque/impl.v
 examples/opaque/shared.v
 examples/opaque/client_proofs.v
 examples/opaque/server_proofs.v
+examples/opaque/game.v
 
 ## TLS 1.3
 
