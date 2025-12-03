@@ -28,13 +28,12 @@ Notation opN := (nroot.@"op").
 Definition game : val :=
 λ: <>,
 let: "c" := init_network #() in
-let: "sid" := mk_nonce #() in
-let: "ssid" := mk_nonce #() in
+let: "uid" := mk_nonce #() in
 let: "pw" := mk_nonce #() in
 let: "db" := AList.new #() in
-AList.insert "db" "sid" (Server.make_file "pw") ;;
-Fork (Server.server_session "sid" "ssid" "db" "c");;
-Client.client_session "sid" "ssid" "c" "pw";;
+AList.insert "db" "uid" (Server.make_file "pw") ;;
+Fork (Server.server_session "uid" "db" "c");;
+Client.client_session "uid" "c" "pw";;
 assert: (~ eq_term "pw" (recv "c")).
 
 End Game.

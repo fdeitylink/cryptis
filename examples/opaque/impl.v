@@ -40,13 +40,12 @@ Module Client.
 
 Section Client.
 
-(* TODO: sid/ssid source? *)
-Definition client_session : val := λ: "sid" "ssid" "c" "pw",
+Definition client_session : val := λ: "uid" "c" "pw",
     let: "x_u" := mk_nonce #() in
     let: "r" := mk_nonce #() in
     let: "α" := texp (H' "α" "pw") "r" in
     let: "X_u" := texp g "x_u" in
-    let: "m1" := term_of_list [ "sid"; "ssid"; "α"; "X_u" ] in
+    let: "m1" := term_of_list [ "uid"; "α"; "X_u" ] in
     send "c" "m1" ;;
     bind: "m2" := list_of_term (recv "c") in
     list_match: [ "β"; "X_s"; "envelope"; "A_s" ] := "m2" in
@@ -55,13 +54,13 @@ Definition client_session : val := λ: "sid" "ssid" "c" "pw",
     bind: "envelope_dec" := AuthDec "rw" "envelope" in
     list_match: [ "p_u"; "P_u"; "P_s" ] := "envelope_dec" in
     let: "K" := KE "H" "p_u" "x_u" "P_s" "X_s" in
-    let: "ssid'" := H "ssid'" ["sid"; "ssid"; "α"] in
+    let: "ssid'" := H "ssid'" ["uid"; "α"] in
     let: "SK" := prf "SK" [ "K"; "ssid'" ] in
     guard: eq_term "A_s" (prf "A_s" [ "K"; "ssid'" ]) in
     let: "A_u" := prf "A_u" [ "K"; "ssid'" ] in
     let: "m3" := term_of_list [ "c"; "A_u" ] in
     send "m3" ;;
-    SOME [ "sid"; "ssid"; "SK" ].
+    SOME [ "uid"; "SK" ].
 
 End Client.
 
@@ -73,9 +72,9 @@ Section Server.
 
 (* OPRF and KE defined entirely in terms of other variables: defined elsewhere *)
 (* enforce that other side is consistently the same person *)
-Definition server_session : val := λ: "sid" "ssid" "db" "c",
+Definition server_session : val := λ: "uid" "db" "c",
     bind: "m1" := list_of_term (recv "c") in
-    list_match: [ "sid"; "ssid"; "α"; "X_u" ] := "m1" in
+    list_match: [ "uid"; "α"; "X_u" ] := "m1" in
     (* TODO: check α ∈ G *)
     bind: "file" := AList.find "db" "sid" in
     list_match: [ "k_s"; "p_s"; "P_s"; "P_u"; "envelope" ] := "file" in
@@ -83,7 +82,7 @@ Definition server_session : val := λ: "sid" "ssid" "db" "c",
     let: "β" := texp "α" "k_s" in
     let: "X_s" := texp g "x_s" in
     let: "K" := KE "p_s" "x_s" "P_u" "X_u" in
-    let: "ssid'" := H "ssid'" [ "sid"; "ssid"; "α" ] in
+    let: "ssid'" := H "ssid'" [ "uid"; "α" ] in
     let: "SK" := prf "SK" [ "K"; "ssid'" ] in
     let: "A_s" := prf "A_s" [ "K"; "ssid'" ] in
     let: "m2" := term_of_list [ "β"; "X_s"; "envelope"; "A_s" ] in
@@ -91,7 +90,7 @@ Definition server_session : val := λ: "sid" "ssid" "db" "c",
     bind: "m3" := list_of_term (recv "c") in
     list_match: [ "c"; "A_u" ] := "m3" in
     guard: eq_term "A_u" (prf "A_u" [ "K"; "ssid'" ]) in
-    SOME [ "sid"; "ssid"; "SK" ].
+    SOME [ "uid"; "SK" ].
 
 (* not useful: assume that files in db are properly formed instead *)
 (* but maybe use this as an example?  that the files can be computed. *)
