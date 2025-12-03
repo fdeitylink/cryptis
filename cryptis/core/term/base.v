@@ -336,11 +336,17 @@ Qed.
 Definition is_nonce t :=
   if t is TNonce _ then true else false.
 
+Definition is_inv t :=
+  if t is TInv' _ _ then true else false.
+
 Definition is_exp t :=
   if t is TExpN' _ _ _ then true else false.
 
 Lemma is_nonce_unfold t : is_nonce t = PreTerm.is_nonce (unfold_term t).
 Proof. by case: t => //=. Qed.
+
+Lemma is_inv_unfold t : is_inv t = PreTerm.is_inv (unfold_term t).
+Proof. by case: t => //= - []. Qed.
 
 Lemma is_exp_unfold t : is_exp t = PreTerm.is_exp (unfold_term t).
 Proof. by case: t => //= - []. Qed.
