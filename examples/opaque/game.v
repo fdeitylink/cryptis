@@ -32,8 +32,8 @@ let: "uid" := mk_nonce #() in
 let: "pw" := mk_nonce #() in
 let: "db" := AList.new #() in
 AList.insert "db" "uid" (Server.make_file "pw") ;;
-Fork (Server.server_session "uid" "db" "c");;
-Client.client_session "uid" "c" "pw";;
+Fork (Server.session "db" "c");;
+Client.session "uid" "c" "pw";;
 assert: (~ eq_term "pw" (recv "c")).
 
 End Game.

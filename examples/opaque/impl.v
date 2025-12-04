@@ -40,7 +40,7 @@ Module Client.
 
 Section Client.
 
-Definition client_session : val := λ: "uid" "c" "pw",
+Definition session : val := λ: "uid" "c" "pw",
     let: "x_u" := mk_nonce #() in
     let: "r" := mk_nonce #() in
     let: "α" := texp (H' "α" "pw") "r" in
@@ -72,7 +72,7 @@ Section Server.
 
 (* OPRF and KE defined entirely in terms of other variables: defined elsewhere *)
 (* enforce that other side is consistently the same person *)
-Definition server_session : val := λ: "uid" "db" "c",
+Definition session : val := λ: "db" "c",
     bind: "m1" := list_of_term (recv "c") in
     list_match: [ "uid"; "α"; "X_u" ] := "m1" in
     (* TODO: check α ∈ G *)
