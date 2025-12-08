@@ -279,6 +279,13 @@ rewrite -map_comp map_id_in // => pt /wf_ts pt_in.
 by rewrite /= fold_termK.
 Qed.
 
+Lemma TInvK : involutive TInv.
+Proof.
+move => ?.
+by rewrite unlock unfold_fold PreTerm.normalize_wf ?PreTerm.wf_inv ?wf_unfold_term //
+  PreTerm.inv_involutive ?wf_unfold_term // unfold_termK.
+Qed.
+
 Lemma TExpN_perm t ts1 ts2 : perm_eq ts1 ts2 -> TExpN t ts1 = TExpN t ts2.
 Proof.
 move=> perm_ts12; apply: unfold_term_inj; rewrite !unfold_TExpN. apply: PreTerm.perm_exp.
