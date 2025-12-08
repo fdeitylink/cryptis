@@ -162,7 +162,7 @@ Section TInv.
 Fact TInv_key : unit. Proof. exact: tt. Qed.
 Definition TInv :=
   locked_with TInv_key (
-      fun t => fold_term (PreTerm.PT1 O1Inv (unfold_term t))
+      fun t => fold_term (PreTerm.inv (unfold_term t))
   ).
 Canonical TInv_unlock := [unlockable of TInv].
 
@@ -220,10 +220,10 @@ rewrite map_id_in // => ? /mapP [] {}t t_ts ->.
 exact: normalize_unfold1.
 Qed.
 
-Lemma unfold_TInv t :
-  unfold_term (TInv t)
-  = PreTerm.inv (unfold_term t).
-Proof. by rewrite unlock unfold_fold /= normalize_unfold1. Qed.
+Lemma unfold_TInv t : unfold_term (TInv t) = PreTerm.inv (unfold_term t).
+Proof.
+by rewrite unlock unfold_fold PreTerm.normalize_wf ?PreTerm.wf_inv ?wf_unfold_term.
+Qed.
 
 Lemma unfold_TExpN t ts :
   unfold_term (TExpN t ts)
