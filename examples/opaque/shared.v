@@ -1,5 +1,11 @@
+From stdpp Require Import base gmap.
 From mathcomp Require Import ssreflect.
-From iris.heap_lang Require Import proofmode.
+From iris.heap_lang Require Import notation proofmode.
+From iris.heap_lang.lib Require Import par.
+From cryptis Require Import lib term cryptis primitives tactics.
+
+From cryptis.examples Require Import alist.
+From cryptis.examples.opaque Require Import impl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -7,7 +13,63 @@ Unset Printing Implicit Defensive.
 
 Section Opaque.
 
-Context `{!heapGS Σ, !cryptisG Σ, !sessionG Σ}.
+Context `{!cryptisGS Σ, !heapGS Σ, !spawnG Σ}.
 Notation iProp := (iProp Σ).
+
+Notation opN := (nroot.@"op").
+
+Definition hash_result (tag : string) (val : term) : heap_lang.val :=
+  repr (THash (Spec.tag
+                 (Tag $ opN.@tag)
+                 val)).
+
+Lemma _wp_H (tag : string) (val : term):
+{{{True}}}
+_H tag val
+{{{ RET hash_result tag val; True}}}.
+Proof.
+  iIntros "%ϕ _ post".
+  wp_lam.
+  wp_apply wp_tag.
+  wp_apply wp_hash.
+  by iApply "post".
+Qed.  
+
+Lemma _wp_H_list (tag : string) (val : list term):
+{{{True}}}
+_H_list tag (repr val)
+{{{ RET hash_result tag (Spec.of_list val); True}}}.
+Proof.
+  iIntros "%ϕ _ post".
+  wp_lam.
+  wp_apply wp_term_of_list.
+  by wp_apply _wp_H.
+Qed.
+
+Definition wp_prf   := _wp_H_list.
+Definition wp_H     := _wp_H_list.
+Definition wp_H'    := _wp_H.
+
+Lemma wp_ke (p_a x_a P_b X_b : term):
+{{{ True }}}
+KE p_a x_a P_b X_b
+{{{ RET hash_result "K"
+    (Spec.of_list [TExp P_b p_a; TExp X_b x_a]); True}}}.
+Proof.
+  iIntros "%ϕ _ post".
+  wp_lam.
+  wp_pures.
+  wp_apply wp_texp. wp_list.
+  wp_apply wp_texp. wp_list.
+  by wp_apply _wp_H_list.
+Qed.
+
+Lemma public_g :
+  True -∗ public g.
+Proof.
+  iIntros "_".
+  unfold g.
+  by iApply public_TInt.
+Qed.
 
 End Opaque.

@@ -21,16 +21,17 @@ Local Existing Instance ticket_lock.
 
 Notation opN := (nroot.@"op").
 
-Definition _H : string -> val := fun tag => (λ: "val", hash (tag (Tag $ opN.@tag) "val"))%V.
-Definition prf  := _H.
-Definition H    := _H.
+Definition _H : string -> val := fun _tag => (λ: "val", hash (tag (Tag $ opN.@_tag) "val"))%V.
+Definition _H_list : string -> val := fun _tag => (λ: "val", _H _tag (term_of_list "val"))%V.
+Definition prf  := _H_list.
+Definition H    := _H_list.
 Definition H'   := _H.
-Definition AuthEnc : val := λ: "key" "v", senc "key" (Tag $ opN.@"AuthEnc") "v".
-Definition AuthDec : val := λ: "key" "v", sdec "key" (Tag $ opN.@"AuthEnc") "v".
+Definition AuthEnc : val := λ: "key" "v", senc "key" (Tag $ opN.@"AuthEnc") (term_of_list "v").
+Definition AuthDec : val := λ: "key" "v", sdec "key" (Tag $ opN.@"AuthEnc") (term_of_list "v").
 Definition g := (TInt 0).
 
 Definition OPRF : val := λ: "k",
-λ: "x", H "rw" ["x"; (texp (H' "α" "x") "k")].
+    λ: "x", H "rw" ["x"; (texp (H' "α" "x") "k")].
 
 (* TODO: use the key exchange formula from the OPAQUE paper *)
 Definition KE : val := λ: "p_a" "x_a" "P_b" "X_b",
@@ -58,7 +59,7 @@ Definition session : val := λ: "uid" "c" "pw",
     let: "SK" := prf "SK" [ "K"; "ssid'" ] in
     guard: eq_term "A_s" (prf "A_s" [ "K"; "ssid'" ]) in
     let: "A_u" := prf "A_u" [ "K"; "ssid'" ] in
-    let: "m3" := term_of_list [ "c"; "A_u" ] in
+    let: "m3" := "A_u"  in
     send "m3" ;;
     SOME [ "uid"; "SK" ].
 
@@ -76,8 +77,9 @@ Definition session : val := λ: "db" "c",
     bind: "m1" := list_of_term (recv "c") in
     list_match: [ "uid"; "α"; "X_u" ] := "m1" in
     (* TODO: check α ∈ G *)
-    bind: "file" := AList.find "db" "sid" in
-    list_match: [ "k_s"; "p_s"; "P_s"; "P_u"; "envelope" ] := "file" in
+    bind: "file" := AList.find "db" "uid" in
+    bind: "file_list" := list_of_term "file" in
+    list_match: [ "k_s"; "p_s"; "P_s"; "P_u"; "envelope" ] := "file_list" in
     let: "x_s" := mk_nonce #() in
     let: "β" := texp "α" "k_s" in
     let: "X_s" := texp g "x_s" in
@@ -87,8 +89,8 @@ Definition session : val := λ: "db" "c",
     let: "A_s" := prf "A_s" [ "K"; "ssid'" ] in
     let: "m2" := term_of_list [ "β"; "X_s"; "envelope"; "A_s" ] in
     send "c" "m2" ;;
-    bind: "m3" := list_of_term (recv "c") in
-    list_match: [ "c"; "A_u" ] := "m3" in
+    let: "m3" := recv "c" in
+    let: "A_u" := "m3" in
     guard: eq_term "A_u" (prf "A_u" [ "K"; "ssid'" ]) in
     SOME [ "uid"; "SK" ].
 
