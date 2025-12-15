@@ -274,8 +274,8 @@ Qed.
 Lemma unfold_exps t :
   map unfold_term (exps t) = PreTerm.exps (unfold_term t).
 Proof.
-case: t => //= ?? /and5P [?? /allP wf_ts ??].
-rewrite -map_comp map_id_in // => pt /wf_ts pt_in.
+case: t => //= ?? /and5P [_ _ /allP wfs _ _].
+rewrite -map_comp map_id_in //= => ? /wfs ?.
 by rewrite /= fold_termK.
 Qed.
 
@@ -291,9 +291,9 @@ Qed.
 
 Lemma TExpN_perm t ts1 ts2 : perm_eq ts1 ts2 -> TExpN t ts1 = TExpN t ts2.
 Proof.
-move=> perm_ts12; apply: unfold_term_inj; rewrite !unfold_TExpN. apply: PreTerm.perm_exp.
+move => ?; apply: unfold_term_inj; rewrite !unfold_TExpN. apply: PreTerm.perm_exp.
  - exact: wf_unfold_term.
- - apply /allP => /= pt /mapP /= [??] ->. exact: wf_unfold_term.
+ - exact: wf_unfold_terms.
  - exact: perm_map.
 Qed.
 
@@ -523,12 +523,12 @@ Lemma tsize_TExpN t ts :
   tsize (TExpN t ts)
   = (ts != [::]) + tsize t + sumn (map tsize ts).
 Proof.
-move => nExp ?.
-rewrite /tsize unfold_TExpN PreTerm.tsize_exp // -?is_exp_unfold //.
+move => ??.
+rewrite /tsize unfold_TExpN PreTerm.tsize_exp -?is_exp_unfold //.
 rewrite -size_eq0 size_map size_eq0.
-case: (altP eqP) => [-> |tsN0] //=; rewrite ?addn0 //.
-rewrite big_cons /= sumnE !big_map.
-by case: (t) nExp.
+case: (altP eqP) => [-> | _] //=.
+- by rewrite addn0.
+- by rewrite big_cons /= sumnE !big_map PreTerm.base_expN // -is_exp_unfold.
 Qed.
 
 Lemma TExpN_injl : left_injective TExpN.
