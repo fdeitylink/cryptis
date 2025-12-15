@@ -765,12 +765,7 @@ by rewrite is_trueP.
 Qed.
 
 Lemma TExp0 t : TExpN t [] = t.
-Proof.
-(*
-apply: base_exps_inj; first by rewrite base_TExpN.
-by rewrite exps_TExpN app_nil_r.
-Qed.
-*) Admitted.
+Proof. exact: TExpN0. Qed.
 
 Lemma is_exp_base t : ¬ is_exp (base t).
 Proof.
