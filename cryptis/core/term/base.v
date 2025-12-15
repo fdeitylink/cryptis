@@ -362,6 +362,17 @@ case: (count_mem t (cancel_exps ts1) =P 0)
 - by rewrite addnBAC.
 Qed.
 
+Lemma count_map_TInv t ts:
+  count_mem t (map TInv ts) = count_mem (TInv t) ts.
+Proof. elim: ts => //= [?? ->]. by rewrite (inv_eq TInvK). Qed.
+
+Lemma cancel_exps_cat_invs ts1 ts2 :
+  perm_eq (cancel_exps (ts1 ++ ts2 ++ map TInv ts2)) (cancel_exps ts1).
+Proof.
+apply count_perm_cancel.
+move => t. rewrite !count_cat !count_map_TInv /= TInvK !addnE !subnE. lia.
+Qed.
+
 Lemma exps_TExpN t ts :
   exps (TExpN t ts) = sort <=%O (cancel_exps (exps t ++ ts)).
 Proof.
@@ -503,13 +514,15 @@ Qed.
 
 Lemma TExpN_injl : left_injective TExpN.
 Proof.
-(*
-move=> ts t1 t2 e; apply: base_exps_inj.
-- by move/(congr1 base): e; rewrite !base_TExpN.
-- move/(congr1 exps): e; rewrite !exps_TExpN.
-  by move/perm_sort_leP; rewrite perm_cat2r.
+move => a g1 g2 eq. apply base_exps_inj.
+- by rewrite -(base_TExpN _ a) eq base_TExpN.
+- rewrite -(TExpN0 g1) -(TExpN0 g2) !exps_TExpN !cats0 perm_sort perm_sym perm_sort.
+  apply perm_trans with (cancel_exps (exps g2 ++ a ++ map TInv a)); rewrite perm_sym.
+  + apply cancel_exps_cat_invs.
+  + apply perm_trans with (cancel_exps (exps g1 ++ a ++ map TInv a)).
+    * rewrite perm_sym. apply cancel_exps_cat_invs.
+    * apply /perm_sort_leP. by rewrite -!exps_TExpN -!TExpNA eq.
 Qed.
-*) Admitted.
 
 Lemma TExpN_injr t ts1 ts2 : TExpN t ts1 = TExpN t ts2 -> perm_eq ts1 ts2.
 Proof.
