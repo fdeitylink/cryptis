@@ -345,6 +345,16 @@ split.
 - move => *. rewrite -!count_cancel. exact: permP.
 Qed.
 
+Lemma count_perm_cancel_redux ts1 ts2 :
+  (forall t, count_mem t ts1 + count_mem (TInv t) ts2 =
+        count_mem t ts2 + count_mem (TInv t) ts1) <->
+  perm_eq (cancel_exps ts1) (cancel_exps ts2).
+Proof.
+rewrite -count_perm_cancel !addnE !subnE.
+split => H t; have := H t; first lia.
+have := H (TInv t). rewrite TInvK. lia.
+Qed.
+
 Lemma count_TInv_cancel t ts :
   count_mem t (cancel_exps ts) != 0 -> count_mem (TInv t) (cancel_exps ts) == 0.
 Proof. by rewrite !count_cancel TInvK -ltnNge => /ltnW. Qed.
@@ -360,6 +370,15 @@ case: (count_mem t (cancel_exps ts1) =P 0)
       rewrite add0n !subnDA.
 - by rewrite addnC subnBA.
 - by rewrite addnBAC.
+Qed.
+
+Lemma perm_cancel_exps_catl ts1 ts2 ts :
+  perm_eq (cancel_exps (ts ++ ts1)) (cancel_exps (ts ++ ts2)) =
+  perm_eq (cancel_exps ts1) (cancel_exps ts2).
+Proof.
+apply /(sameP idP); apply /(iffP idP);
+move => /count_perm_cancel_redux wt_eq; apply count_perm_cancel_redux => t;
+have := wt_eq t; rewrite !count_cat !addnE; lia.
 Qed.
 
 Lemma count_map_TInv t ts:
@@ -524,17 +543,18 @@ move => a g1 g2 eq. apply base_exps_inj.
     * apply /perm_sort_leP. by rewrite -!exps_TExpN -!TExpNA eq.
 Qed.
 
-Lemma TExpN_injr t ts1 ts2 : TExpN t ts1 = TExpN t ts2 -> perm_eq ts1 ts2.
+Lemma TExpN_injr t ts1 ts2 :
+  TExpN t ts1 = TExpN t ts2 ->
+  perm_eq (cancel_exps ts1) (cancel_exps ts2).
 Proof.
-(*
-move=> /(congr1 exps); rewrite !exps_TExpN; move/perm_sort_leP.
-by rewrite perm_cat2l.
+move => /(congr1 exps). rewrite !exps_TExpN => /perm_sort_leP.
+by rewrite perm_cancel_exps_catl.
 Qed.
-*) Admitted.
 
 Lemma TExp_injr t t1 t2 : TExp t t1 = TExp t t2 -> t1 = t2.
 Proof.
-by move/TExpN_injr/perm_mem/(_ t2); rewrite !inE eqxx => /eqP.
+move/TExpN_injr/perm_mem/(_ t2).
+by rewrite /cancel_exps /= !unfold_termK !inE eqxx => /eqP.
 Qed.
 
 Lemma tsize_eq t :
