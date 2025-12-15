@@ -279,6 +279,9 @@ rewrite -map_comp map_id_in // => pt /wf_ts pt_in.
 by rewrite /= fold_termK.
 Qed.
 
+Lemma TInv_Nid t : TInv t != t.
+Proof. by rewrite -(eqtype.inj_eq unfold_term_inj) unfold_TInv PreTerm.inv_Nid. Qed.
+
 Lemma TInvK : involutive TInv.
 Proof.
 move => ?.
@@ -433,13 +436,10 @@ rewrite !is_exp_unfold unfold_TExpN => ??.
 by rewrite PreTerm.is_exp_exp ?wf_unfold_term // -!nilpE /nilp size_map.
 Qed.
 
-Lemma inv_Nid t : TInv t != t.
-Proof. by rewrite -(eqtype.inj_eq unfold_term_inj) unfold_TInv PreTerm.inv_Nid. Qed.
-
 Lemma is_exp_TExp t1 t2 : ~~ is_exp t1 -> is_exp (TExp t1 t2).
 Proof.
 move => ?. rewrite is_exp_TExpN //. apply /invs_canceledP => ?.
-rewrite !inE => /eqP ->. exact: inv_Nid.
+rewrite !inE => /eqP ->. exact: TInv_Nid.
 Qed.
 
 Lemma TExpN0 t : TExpN t [::] = t.
