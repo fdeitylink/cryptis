@@ -318,15 +318,48 @@ apply perm_map. apply PreTerm.perm_cancel_exps.
 - exact: perm_map.
 Qed.
 
+Lemma count_map_fold t pts :
+  all PreTerm.wf_term pts ->
+  count_mem t (map fold_term pts) = count_mem (unfold_term t) pts.
+Proof.
+elim: pts => //= [pt' ? IH] /andP [wf' ?]. rewrite IH //.
+case: (pt' =P unfold_term t) => [/(canLR unfold_termK) /eqP -> | /eqP neq] //.
+rewrite -(PreTerm.normalize_wf wf') -unfold_fold (eqtype.inj_eq unfold_term_inj) in neq.
+by move: neq => /negbTE ->.
+Qed.
+
+Lemma count_cancel t ts :
+  count_mem t (cancel_exps ts) = count_mem t ts - count_mem (TInv t) ts.
+Proof.
+by rewrite /cancel_exps count_map_fold ?PreTerm.wf_cancel_exps ?wf_unfold_terms //
+  PreTerm.count_cancel ?wf_unfold_term ?wf_unfold_terms // -unfold_TInv !count_map.
+Qed.
+
+Lemma count_perm_cancel ts1 ts2 :
+  (forall t, count_mem t ts1 - count_mem (TInv t) ts1 =
+        count_mem t ts2 - count_mem (TInv t) ts2) <->
+  perm_eq (cancel_exps ts1) (cancel_exps ts2).
+Proof.
+split.
+- move => wt_eq. apply /allP => /= ? _. by rewrite !count_cancel wt_eq.
+- move => *. rewrite -!count_cancel. exact: permP.
+Qed.
+
+Lemma count_TInv_cancel t ts :
+  count_mem t (cancel_exps ts) != 0 -> count_mem (TInv t) (cancel_exps ts) == 0.
+Proof. by rewrite !count_cancel TInvK -ltnNge => /ltnW. Qed.
+
 Lemma cancel_exps_cat ts1 ts2 :
   perm_eq (cancel_exps (cancel_exps ts1 ++ ts2))
           (cancel_exps (ts1 ++ ts2)).
 Proof.
-rewrite /cancel_exps. apply perm_map. rewrite !map_cat -map_comp.
-under eq_map => ? do rewrite /= unfold_fold. rewrite map_id_in.
-- apply PreTerm.cancel_exps_cat; apply wf_unfold_terms.
-- move => /= ? /PreTerm.in_cancel_exps pt_in. apply PreTerm.normalize_wf.
-  move: pt_in => /mapP [? _] ->. exact: wf_unfold_term.
+apply count_perm_cancel => t. rewrite !count_cat.
+case: (count_mem t (cancel_exps ts1) =P 0)
+    => /eqP => [| /count_TInv_cancel];
+      rewrite !count_cancel TInvK => /[dup] ? /eqP ->;
+      rewrite add0n !subnDA.
+- by rewrite addnC subnBA.
+- by rewrite addnBAC.
 Qed.
 
 Lemma exps_TExpN t ts :

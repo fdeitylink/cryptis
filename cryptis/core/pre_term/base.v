@@ -427,20 +427,6 @@ have -> : count_mem pt pts1 = count_mem pt pts2. exact: permP.
 have -> // : count_mem (inv pt) pts1 = count_mem (inv pt) pts2. exact: permP.
 Qed.
 
-Lemma cancel_exps_cat pts1 pts2 :
-  all wf_term pts1 -> all wf_term pts2 ->
-  perm_eq (cancel_exps (cancel_exps pts1 ++ pts2))
-          (cancel_exps (pts1 ++ pts2)).
-move => wfs1 ?. apply count_perm_cancel; rewrite ?all_cat ?wf_cancel_exps ?wfs1 //.
-move => pt wf_pt. rewrite !count_cat.
-case: (count_mem pt (cancel_exps pts1) =P 0) => [| /eqP wtN0].
-- rewrite !count_cancel ?wf_inv // => /[dup] /eqP ? ->.
-  by rewrite inv_involutive // add0n !subnDA addnC subnBA.
-- have := count_inv_cancel wf_pt wfs1 wtN0.
-  rewrite !count_cancel ?wf_inv // inv_involutive // => /[dup] ? /eqP ->.
-  by rewrite add0n subnDA addnBAC.
-Qed.
-
 Lemma perm_insert_exp pt pts1 pts2 :
   perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
 Proof.
