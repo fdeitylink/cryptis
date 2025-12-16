@@ -74,6 +74,17 @@ elim: s1 s2 / => //.
 - by move=> ? ? ? _ ? _; apply: seq.perm_trans.
 Qed.
 
+Lemma inP (T : eqType) (H : base.RelDecision (@eq T)) (x : T) (xs : seq T) :
+  reflect (base.elem_of x xs) (x \in xs).
+Proof.
+apply /(equivP idP).
+elim: xs => //= [| x' xs' IH].
+- by rewrite list.elem_of_nil.
+- rewrite inE list.elem_of_cons -IH. split.
+  + move => /orP [/eqP |]; auto.
+  + move => [/eqP -> | -> ] //. by rewrite orbT.
+Qed.
+
 Lemma perm_sort_leP d (T : orderType d) (s1 s2 : seq T) :
   reflect (sort <=%O s1 = sort <=%O s2) (perm_eq s1 s2).
 Proof.
