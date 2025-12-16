@@ -104,7 +104,7 @@ Definition make_file : val := λ: "pw",
     let: "P_s" := texp g "p_s" in
     let: "P_u" := texp g "p_u" in
     let: "envelope" := AuthEnc "rw" ["p_u"; "P_u"; "P_s"] in
-    SOME ["k_s"; "p_s"; "P_s"; "P_u"; "envelope"].
+    term_of_list ["k_s"; "p_s"; "P_s"; "P_u"; "envelope"].
 
 End Server.
 
