@@ -103,8 +103,8 @@ Definition make_file : val := λ: "pw",
     let: "p_u" := mk_nonce #() in
     let: "P_s" := texp g "p_s" in
     let: "P_u" := texp g "p_u" in
-    let: "c" := AuthEnc "rw" ["p_u"; "P_u"; "P_s"] in
-    SOME ["k_s"; "p_s"; "P_s"; "P_u"; "c"].
+    let: "envelope" := AuthEnc "rw" ["p_u"; "P_u"; "P_s"] in
+    SOME ["k_s"; "p_s"; "P_s"; "P_u"; "envelope"].
 
 End Server.
 
