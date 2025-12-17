@@ -37,10 +37,10 @@ Lemma wp_make_file (pw : term) :
 Server.make_file pw
 {{{ file , RET file ; True }}}.
 Proof.
-  iIntros "%ϕ [#cryptis Hmintedpw] post".
+  iIntros "%ϕ [#cryptis #Hmintedpw] post".
   wp_lam.
   wp_apply (wp_mk_nonce (fun _ => False)%I (fun _ => False)%I) => //.
-  iIntros "%k_s %Hnoncek_s Hmintedk_s Hprivatek_s H!eqk_s Htokenk_s".
+  iIntros "%k_s %Hnoncek_s #Hmintedk_s #Hprivatek_s #H!eqk_s Htokenk_s".
   wp_pures.
   wp_lam.
   wp_pures.
@@ -55,13 +55,39 @@ Proof.
   wp_apply wp_derive_senc_key.
   wp_pures.
   wp_apply (wp_mk_nonce (fun _ => False)%I (fun _ => False)%I) => //.
-  iIntros "%p_s %Hnoncep_s Hmintedp_s Hprivatep_s H!eqp_s Htokenp_s".
+  iIntros "%p_s %Hnoncep_s #Hmintedp_s #Hprivatep_s #H!eqp_s Htokenp_s".
   wp_pures.
   wp_apply (wp_mk_nonce (fun _ => False)%I (fun _ => False)%I) => //.
-  iIntros "%p_u %Hnoncep_u Hmintedp_u Hprivatep_u H!eqp_u Htokenp_u".
+  iIntros "%p_u %Hnoncep_u #Hmintedp_u #Hprivatep_u #H!eqp_u Htokenp_u".
   wp_pures.
   wp_apply wp_texp. wp_pures.
   wp_apply wp_texp. wp_pures.
+  unfold AuthEnc.
+  wp_list.
+  wp_pures.
+  wp_term_of_list.
+  wp_apply wp_senc.
+  admit.
+  iApply minted_senc. iApply minted_THash. iApply minted_tag. iApply minted_of_list.
+  do !iSplit => //.
+  iApply minted_TExp.
+  by intro contra.
+  iSplit => //.
+  iApply minted_THash. by iApply minted_tag.
+  iApply minted_of_list. do !iSplit => //.
+  iApply minted_TExp.
+  by intro contra.
+  iSplit => //.
+  by iApply minted_TInt.
+  iApply minted_TExp.
+  by intro contra.
+  iSplit => //.
+  by iApply minted_TInt.
+  admit.
+  admit.
+  iIntros "%envelope #Hpubenv".
+  wp_list.
+  wp_term_of_list.
 Admitted.
 
 Lemma wp_server_session (db c : term) (alist : gmap term term) : 
