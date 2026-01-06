@@ -425,43 +425,6 @@ move => ? peq. have ?: all wf_term pts2 by rewrite -(perm_all _ peq).
 apply count_perm_cancel => // ? _. by rewrite !(permP peq).
 Qed.
 
-Lemma perm_insert_exp pt pts1 pts2 :
-  perm_eq pts1 pts2 -> perm_eq (insert_exp pt pts1) (insert_exp pt pts2).
-Proof.
-move => H. rewrite /insert_exp (perm_mem H). case: (inv pt \in pts2) => //=.
-  exact: perm_rem.
-  by rewrite perm_cons.
-Qed.
-
-Lemma perm_insert_exp_swap pt1 pt2 pts :
-  wf_term pt1 -> wf_term pt2 ->
-  perm_eq (insert_exp pt1 (insert_exp pt2 pts)) (insert_exp pt2 (insert_exp pt1 pts)).
-Proof.
-rewrite /insert_exp => wf1 wf2.
-have [<- //|n12] := altP (pt1 =P pt2).
-have n12' : inv pt1 != inv pt2.
-  rewrite -[pt1]inv_involutive // -[pt2]inv_involutive // in n12.
-  by apply: contraNN n12 => /eqP ->.
-have [pt1_pts|pt1_pts] := ifPn (inv pt1 \in pts);
-have [pt2_pts|pt2_pts] := ifPn (inv pt2 \in pts).
-- by rewrite rem_rem rem_mem // rem_mem // eq_sym.
-- rewrite inE pt1_pts orbT /=.
-  have /negbTE -> : inv pt2 \notin rem (inv pt1) pts.
-    apply: contraNN pt2_pts. exact: mem_rem.
-  case: ifP => // /eqP <- in pt1_pts *.
-  exact: perm_to_rem.
-- rewrite inE pt2_pts orbT /=.
-  have /negbTE -> : inv pt1 \notin rem (inv pt2) pts.
-    apply: contraNN pt1_pts. exact: mem_rem.
-  case: ifP => // /eqP <- in pt2_pts *.
-  rewrite perm_sym. exact: perm_to_rem.
-- rewrite !inE (negbTE pt1_pts) (negbTE pt2_pts) !orbF /=.
-  rewrite [pt2 == _]eq_sym inv_eq_op // [inv pt2 == _]eq_sym.
-  case: ifPn => [/eqP ->|_]; first by rewrite eqxx.
-  apply/perm_consP. exists 1, (rcons pts pt1).
-  rewrite perm_rcons; split => //=; by rewrite -cats1.
-Qed.
-
 Lemma base_expN pt : ~~ is_exp pt -> base pt = pt.
 Proof. by case: pt. Qed.
 
