@@ -406,8 +406,8 @@ Lemma count_perm_cancel pts1 pts2 :
   perm_eq (cancel_exps pts1) (cancel_exps pts2).
 move => wfs1 wfs2. split.
 - move => wt_eq. rewrite /perm_eq. apply /allP => /= pt. rewrite mem_cat => /orP pt_in.
-  have wf_pt: wf_term pt. by case: pt_in => /in_cancel_exps => [ /(allP wfs1) | /(allP wfs2) ].
-  have /eqP := wt_eq _ wf_pt. by rewrite -!count_cancel.
+  have ?: wf_term pt by case: pt_in => /in_cancel_exps => [ /(allP wfs1) | /(allP wfs2) ].
+  by rewrite !count_cancel // wt_eq.
 - move => *. rewrite -!count_cancel //. exact: permP.
 Qed.
 
@@ -421,10 +421,8 @@ Qed.
 Lemma perm_cancel_exps pts1 pts2 :
   all wf_term pts1 -> perm_eq pts1 pts2 -> perm_eq (cancel_exps pts1) (cancel_exps pts2).
 Proof.
-move => ? peq. have wfs2 : all wf_term pts2. by rewrite -(perm_all _ peq).
-apply count_perm_cancel => // pt wf_pt.
-have -> : count_mem pt pts1 = count_mem pt pts2. exact: permP.
-have -> // : count_mem (inv pt) pts1 = count_mem (inv pt) pts2. exact: permP.
+move => ? peq. have ?: all wf_term pts2 by rewrite -(perm_all _ peq).
+apply count_perm_cancel => // ? _. by rewrite !(permP peq).
 Qed.
 
 Lemma perm_insert_exp pt pts1 pts2 :
