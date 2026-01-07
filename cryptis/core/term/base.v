@@ -431,9 +431,9 @@ Lemma base_expsK t : TExpN (base t) (exps t) = t.
 Proof.
 apply /unfold_term_inj; rewrite unfold_TExpN unfold_base unfold_exps.
 case: (unfold_term t) (wf_unfold_term t) => //=.
-move => pt pts /and5P [_ ptNexp _ ptsN0 /andP [sorted_pts canceled_pts]].
-by rewrite /PreTerm.exp PreTerm.exps_expN //= PreTerm.cancel_exps_canceled //
-  size_sort size_eq0 (negbTE ptsN0) PreTerm.base_expN // sort_le_id.
+move => ?? /and5P [_ ? _ /negbTE ptsN0 /andP [??]].
+by rewrite /PreTerm.exp PreTerm.exps_expN //= PreTerm.cancel_exps_canceled // nilpE ptsN0
+  PreTerm.base_expN // sort_le_id.
 Qed.
 
 Lemma base_exps_inj t1 t2 :
@@ -459,9 +459,9 @@ Lemma is_nonce_TExpN t ts :
   is_nonce (TExpN t ts) = nilp (cancel_exps (exps t ++ ts)) && is_nonce (base t).
 Proof.
 rewrite !is_nonce_unfold unfold_TExpN /PreTerm.exp.
-set es := sort _ _.
-have -> : size es == 0 = nilp (cancel_exps (exps t ++ ts)).
-by rewrite size_sort /cancel_exps map_cat unfold_exps /nilp size_map.
+set es := PreTerm.cancel_exps _.
+have -> : nilp es = nilp (cancel_exps (exps t ++ ts))
+by rewrite /cancel_exps map_cat unfold_exps /nilp size_map.
 case: ifP => //=. by rewrite unfold_base.
 Qed.
 

@@ -135,10 +135,9 @@ Definition hl_insert_exp : val := λ: "pt" "pts",
 Definition hl_cancel_exps : val := λ: "exps", foldr_list hl_insert_exp [] "exps".
 
 Definition hl_exp : val := λ: "pt" "pts",
-    let: "normed" := insertion_sort leq_term (
-        hl_cancel_exps (append_lists (hl_exps "pt") "pts")) in
-    if: "normed" = [] then hl_base "pt"
-    else (#TExp_tag, (hl_base "pt", "normed")).
+    let: "canceled" := hl_cancel_exps (append_lists (hl_exps "pt") "pts") in
+    if: "canceled" = [] then hl_base "pt"
+    else (#TExp_tag, (hl_base "pt", insertion_sort leq_term "canceled")).
 
 Definition texp : val := λ: "base" "exp",
     hl_exp "base" ["exp"].
@@ -378,29 +377,23 @@ Proof.
     wp_apply twp_hl_exps.
     wp_apply twp_append_lists.
     wp_apply twp_hl_cancel_exps.
-    simpl; wp_apply twp_insertion_sort.
-        iIntros "%x %y %Ψ _ HΨ". iApply twp_leq_pre_term. by iApply "HΨ".
-        done. iIntros "_".
     wp_pures.
     rewrite /PreTerm.exp.
-    set normed := (sort <=%O (PreTerm.cancel_exps (PreTerm.exps pt ++ pts)%list)).
-    destruct (decide (size normed = 0)) as [H | H].
-        rewrite H.
-        rewrite (size0nil H); rewrite repr_list_unseal; simpl.
-        wp_pures.
-        wp_apply twp_hl_base => /=.
-        iApply "HΦ".
-    assert ((@eq_op
-        ssrnat.Datatypes_nat__canonical__eqtype_Equality (* Why *)
-        (size normed) 0) = false) as -> by by destruct normed.
-    assert (bool_decide (repr_list normed = NONEV) = false) as Hhl
-        by (destruct normed; by rewrite repr_list_unseal);
-        rewrite Hhl; clear Hhl. (* This works, but `as ->` doesn't *)
-    wp_pures.
-    wp_apply twp_hl_base.
-    wp_pures.
-    iSimpl in "HΦ". rewrite -repr_list_val.
-    iApply "HΦ".
+    case: (PreTerm.cancel_exps _) => /= [| pt' pts'].
+    - rewrite repr_list_unseal.
+      wp_pures.
+      wp_apply twp_hl_base.
+      iApply "HΦ".
+    - have -> : (bool_decide (repr_list (pt' :: pts') = NONEV) = false)
+        by rewrite repr_list_unseal.
+      wp_pures.
+      wp_apply twp_insertion_sort => //.
+        iIntros "%x %y %Ψ _ HΨ". iApply twp_leq_pre_term. by iApply "HΨ".
+        iIntros "_".
+      wp_apply twp_hl_base.
+      wp_pures.
+      rewrite -repr_list_val.
+      iApply "HΦ".
 Qed.
 
 End Proofs.

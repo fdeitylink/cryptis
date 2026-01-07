@@ -294,9 +294,9 @@ Definition insert_exp pt pts :=
 Definition cancel_exps := foldr insert_exp [::].
 
 Definition exp pt pts :=
-  let normed := sort <=%O (cancel_exps (exps pt ++ pts)) in
-  if size normed == 0 then base pt
-  else PTExp (base pt) normed.
+  let canceled := cancel_exps (exps pt ++ pts) in
+  if nilp canceled then base pt
+  else PTExp (base pt) (sort <=%O canceled).
 
 Fixpoint normalize pt :=
   match pt with
@@ -449,7 +449,7 @@ Proof. case: pt => //= ?? /and5P [_ ? *]. exact: exps_expN. Qed.
 Lemma exps_exp pt pts :
   wf_term pt ->
   exps (exp pt pts) = sort <=%O (cancel_exps (exps pt ++ pts)).
-Proof. rewrite /exp => ?. case: ifP => //=. rewrite exps_base //. by case: sort. Qed.
+Proof. move => ?. rewrite /exp. case: (altP nilP) => // ->. by rewrite exps_base. Qed.
 
 Lemma base_expsK pt : is_exp pt -> PTExp (base pt) (exps pt) = pt.
 Proof. by case: pt. Qed.
@@ -463,15 +463,15 @@ Proof. by case: pt => //= [pt' pts' /and5P [_ _ _ _ /andP []]]. Qed.
 Lemma inv_invN pt : ~~ is_inv pt -> inv pt = PT1 O1Inv pt.
 Proof. by case: pt => - []. Qed.
 
-
 Lemma perm_exp pt pts1 pts2 :
   wf_term pt -> all wf_term pts1 -> perm_eq pts1 pts2 -> exp pt pts1 = exp pt pts2.
 Proof.
-move => wf ??. rewrite /exp.
-have /perm_sort_leP -> //: perm_eq (cancel_exps (exps pt ++ pts1)) (cancel_exps (exps pt ++ pts2)).
+move => ???. rewrite /exp /nilp.
+have: perm_eq (cancel_exps (exps pt ++ pts1)) (cancel_exps (exps pt ++ pts2)).
   rewrite perm_cancel_exps //.
   - by rewrite all_cat wf_exps.
   - by rewrite perm_cat2l.
+by move => /[dup] /perm_sort_leP -> /perm_size ->.
 Qed.
 
 Lemma invs_canceled_sort pts : invs_canceled (sort <=%O pts) = invs_canceled pts.
@@ -503,10 +503,11 @@ Qed.
 Lemma wf_exp pt pts :
   wf_term pt -> all wf_term pts -> wf_term (exp pt pts).
 Proof.
-rewrite /exp fun_if /= => ??. rewrite wf_base //. case: (altP eqP) => // ptsN0.
+move => ??. rewrite /exp fun_if /= wf_base //.
+rewrite /nilp -size_eq0 size_sort.
+case: (altP eqP) => //.
 rewrite base_Nexp //.
 rewrite all_sort wf_cancel_exps ?all_cat ?wf_exps //.
-rewrite -size_eq0 ptsN0.
 rewrite sort_le_sorted.
 by rewrite invs_canceled_sort invs_canceled_cancel_exps ?all_cat ?wf_exps.
 Qed.
@@ -536,7 +537,7 @@ reflexivity.
 Qed.
 
 Lemma cancel_exps_canceled pts :
-   invs_canceled pts -> cancel_exps pts = pts.
+  invs_canceled pts -> cancel_exps pts = pts.
 Proof.
 elim: pts => // [?? IH] canceled /=.
 rewrite insert_exp_canceled //; rewrite IH //; exact: (invs_canceled_cons canceled).
@@ -545,9 +546,8 @@ Qed.
 Lemma exp_nil pt : wf_term pt -> exp pt [::] = pt.
 Proof.
 move => wf.
-rewrite /exp cats0 cancel_exps_canceled ?invs_canceled_exps //
-sort_le_id ?exps_sorted // size_eq0.
-by case: (pt) wf => //= [pt' pts' /and5P [_ _ _ /negbTE ->]].
+rewrite /exp cats0 cancel_exps_canceled ?invs_canceled_exps // sort_le_id ?exps_sorted //.
+case: pt wf => //= [?? /and5P [_ _ _]]. by rewrite nilpE => /negbTE ->.
 Qed.
 
 Lemma is_exp_exp pt pts :
@@ -555,8 +555,8 @@ Lemma is_exp_exp pt pts :
   is_exp (exp pt pts) = (pts != [::]).
 Proof.
 move => ?. case: pts => //=.
-  by rewrite exp_nil // => /negbTE ?.
-  move => *. by rewrite /exp size_sort exps_expN // cat0s cancel_exps_canceled.
+  by rewrite exp_nil // => /negbTE.
+  move => *. by rewrite /exp exps_expN // cancel_exps_canceled.
 Qed.
 
 Lemma normalize_wf pt : wf_term pt -> normalize pt = pt.
@@ -564,12 +564,11 @@ Proof.
 elim: pt => //.
 - move => [[] ? IH ? | ? IH ? | ? IH /andP [??]] /=; rewrite ?IH //. exact: inv_invN.
 - by move => /= ?? IH1 ? IH2 /andP [/IH1 -> /IH2 ->].
-- move => ? IH ts IHts /and5P [? ? wf_ts /negbTE tsN0 /andP [??]] /=.
-  have -> : [seq normalize i | i <- ts] = ts.
-  elim: (ts) IHts wf_ts => // [t' ts' IHts' [IHt' ?] /andP [??]] /=.
-  by rewrite IHt' // IHts'.
-  by rewrite IH // /exp exps_expN // cancel_exps_canceled //
-    size_sort size_eq0 tsN0 base_expN // sort_le_id.
+- move => ? IH ts IHts /and5P [?? wf_ts /negbTE tsN0 /andP [??]] /=.
+  have -> : map normalize ts = ts.
+    elim: (ts) IHts wf_ts => // [t' ts' IHts' [IHt' ?] /andP [??]] /=.
+    by rewrite IHt' // IHts'.
+  by rewrite IH // /exp exps_expN // cancel_exps_canceled // nilpE tsN0 base_expN // sort_le_id.
 Qed.
 
 Lemma normalize_idem pt : normalize (normalize pt) = normalize pt.
@@ -590,10 +589,12 @@ Lemma tsize_exp t ts :
   if ts == [::] then tsize t
   else S (\sum_(t' <- base t :: ts) tsize t').
 Proof.
-move => ??. rewrite /exp [LHS]fun_if /= size_eq0.
-rewrite exps_expN // cat0s cancel_exps_canceled //.
-rewrite -size_eq0 size_sort size_eq0. rewrite base_expN //.
+move => ??.
+rewrite /exp [LHS]fun_if.
+rewrite base_expN //.
+rewrite exps_expN // cancel_exps_canceled //=.
 have e: perm_eq (sort <=%O ts) ts by rewrite perm_sort.
+rewrite nilpE.
 by rewrite !big_cons !big_map (perm_big _ e).
 Qed.
 
