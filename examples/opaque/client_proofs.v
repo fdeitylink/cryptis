@@ -74,3 +74,5 @@ Proof.
   intro Hm2eq.
   wp_pures.
 Admitted.
+
+End Opaque.
