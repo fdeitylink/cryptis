@@ -319,26 +319,12 @@ Lemma twp_hl_base E (pt : PreTerm.pre_term) Ψ:
     WP hl_base (repr pt) @ E [{ Ψ }].
 Proof. case: pt => * /=; iIntros "HΨ"; wp_lam; wp_pures; iApply "HΨ". Qed.
 
-(* TODO: Is this already proved somewhere else? *)
-Lemma repr_pre_term_list (pts : seq PreTerm.pre_term) :
-    repr_list (ListDef.map val_of_pre_term pts) = repr_list pts.
-Proof.
-    rewrite !repr_list_unseal.
-    assert (
-        list.foldr (λ (x : heap_lang.val) v, InjRV (repr x, v))
-            (InjLV #()) (val_of_pre_term <$> pts) =
-        list.foldr (λ (x : PreTerm.pre_term) v,
-            InjRV (repr (val_of_pre_term x), v)) (InjLV #()) pts
-    ) by by rewrite foldr_fmap.
-    simpl in H. rewrite -H. reflexivity.
-Qed.
-
 Lemma twp_hl_exps E (pt : PreTerm.pre_term) Ψ :
     Ψ (repr (PreTerm.exps pt)) ⊢
     WP hl_exps (repr pt) @ E [{ Ψ }].
 Proof.
     case: pt => * /=; iIntros "HΨ"; wp_lam; wp_pures;
-        rewrite ?repr_pre_term_list repr_list_unseal; iApply "HΨ".
+        rewrite -?repr_list_val repr_list_unseal; iApply "HΨ".
 Qed.
 
 Lemma twp_hl_inv E (pt : PreTerm.pre_term) Ψ :
@@ -413,7 +399,7 @@ Proof.
     wp_pures.
     wp_apply twp_hl_base.
     wp_pures.
-    iSimpl in "HΦ". rewrite repr_pre_term_list.
+    iSimpl in "HΦ". rewrite -repr_list_val.
     iApply "HΦ".
 Qed.
 
